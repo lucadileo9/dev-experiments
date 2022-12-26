@@ -1,0 +1,9 @@
+[uwsgi]
+http=127.0.0.1:8080
+chdir=/path/to/project/directory
+module=django_project.wsgi:application
+master=True
+pidfile=/tmp/project-name.pid
+vacuum=True
+max-requests=5000
+# daemonize=/path/to/project/directory/log/uwsgi/project-name.log
