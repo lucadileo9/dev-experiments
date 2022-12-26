@@ -1,8 +1,9 @@
-# Strange Blog
+# Django Newspaper
 
 ## Project description
 
-This project is a strange blog 
+This project is a basic newspaper platform, it is inspired to the django for beginners project whose repository 
+is available at https://github.com/wsvincent/djangoforbeginners
 
 
 ## Project configuration
