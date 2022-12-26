@@ -25,7 +25,7 @@ To configure python environment simply launch
 ```shell
 pip install -r requirements.txt
 ```
-NOTE: if you get an error installing mysqlclient, try install python-mysqlclient in the system, it will install required packages
+NOTE: if you get an error installing mysqlclient, try installing python-mysqlclient in the system, it will install required packages
 
 ### Install and configure database
 In order to interact with a mysql db, install mysql and create a db (edit configuration in `django_project/prod-settings.py` accordingly). For local development sqlite will be used.
@@ -65,8 +65,8 @@ python manage.py migrate
 ```
 These step could be automated **BUT**:
 - you should not generate migrations without verifying that they works
-- migrations shuold not be generated directly in production
-- migrations shuold be generated and applied into a database identical in terms of tables and relation to the production one
+- migrations should not be generated directly in production
+- migrations should be generated and applied into a database identical in terms of tables and relation to the production one
 
 
 Project must be run with uwsgi, in order to do that you have to implement uwsgi.ini.example, specifically `chdir` parameter, eventually `pidfile` and `http`
@@ -87,8 +87,8 @@ Hence, DevOps changes must concentrate on automation and enhancement of the appl
 
 WRONG enhancement:
 
-Make dev and prod settings identical, that is, making so both development and production use the same database. It is a part of the project design making so that developer do not need a mysql server running.
+Make dev and prod settings identical, that is, making so both development and production use the same database. It is a part of the project design making so that developer does not need a mysql server running.
 
 RIGHT enhancement:
 
-Create an environment variable that if set change the settings file to production_settings.py, which contains settings to work with mysql server, else it will backup on a sqlite instance.
+Create an environment variable that if set change the settings file to production_settings.py, which contains settings to work with mysql server, else it will backups on a sqlite instance.
