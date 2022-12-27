@@ -32,7 +32,8 @@ In order to interact with a mysql db, install mysql and create a db (edit config
 
 
 ## First Start in Development
-
+Nothing different from standard django development environment, makemigration/migrate to apply migration on a sqlite 
+database and runserver to start
 
 
 
