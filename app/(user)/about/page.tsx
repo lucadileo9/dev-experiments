@@ -1,11 +1,9 @@
-import Image from "next/image";
-import Typography from "@atoms/Typography";
 import Module from "@molecules/Module";
 
-import {pages} from "./db";
+import {pages} from "../../db";
 
-export default function Home() {
-  const page = pages.home;
+export default function AboutUs() {
+  const page = pages["about-us"];
 
   return ( 
       <div className="space-y-8">

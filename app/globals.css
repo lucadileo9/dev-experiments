@@ -3,10 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
+    --color-purple: #8a2be2;
+    --color-beige: #f5f5dc;
+  }
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -73,10 +72,22 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-beige text-purple-900;
+  }
+}
+
+@layer utilities {
+  .bg-purple {
+    background-color: var(--color-purple);
+  }
+  .bg-beige {
+    background-color: var(--color-beige);
+  }
+  .text-purple {
+    color: var(--color-purple);
+  }
+  .text-beige {
+    color: var(--color-beige);
   }
 }

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import './globals.css'
 import { Inter } from 'next/font/google'
 
@@ -15,7 +16,30 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.className} flex flex-col min-h-screen bg-beige`}>
+        
+        <header className="bg-purple text-beige p-4">
+          <nav className="container mx-auto flex justify-between items-center">
+            <Link href="/" className="text-2xl font-bold">Logo</Link>
+            <ul className="flex space-x-4">
+              <li><Link href="/" className="hover:underline">Home</Link></li>
+              <li><Link href="/about" className="hover:underline">About</Link></li>
+              <li><Link href="/contact" className="hover:underline">Contact</Link></li>
+            </ul>
+          </nav>
+        </header>
+
+        <main className="flex-grow container mx-auto px-4 py-8">
+          {children}
+        </main>
+
+
+        <footer className="bg-purple text-beige p-4 mt-8">
+          <div className="container mx-auto text-center">
+            &copy; 2024 Simple Purple & Beige Website. All rights reserved.
+          </div>
+        </footer>
+      </body>
     </html>
   )
 }
