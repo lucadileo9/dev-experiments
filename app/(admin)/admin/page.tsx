@@ -1,14 +1,30 @@
 // app/admin/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, SetStateAction, ReactNode } from "react";
 import axios from "axios";
 
+interface Module {
+  type: ReactNode;
+  _id: any;
+  data: { [key: string]: string }; // Un oggetto con chiavi stringhe e valori stringhe
+}
+
+type EditedModules = {
+  [key: string | number]: Module; // Un oggetto con chiavi stringhe o numeri e valori di tipo Module
+};
+
+interface Page {
+  id: string;
+  title: string;
+  modules: Module[];
+}
+
 export default function Admin() {
-  const [pages, setPages] = useState([]);
-  const [selectedPageId, setSelectedPageId] = useState(null);
-  const [modules, setModules] = useState([]);
-  const [editedModules, setEditedModules] = useState({});
+  const [pages, setPages] = useState<Page[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState("");
+  const [modules, setModules] = useState<Module[]>([]);
+  const [editedModules, setEditedModules] = useState<EditedModules>({});
 
   // Fetch delle pagine al caricamento
   useEffect(() => {
@@ -25,7 +41,7 @@ export default function Admin() {
   }, []);
 
   // Seleziona una pagina per visualizzare/modificare i moduli
-  const handlePageSelect = async (pageId) => {
+  const handlePageSelect = async (pageId: string) => {
     try {
       const res = await axios.get(`/api/pages/${pageId}`);
       setSelectedPageId(pageId);
@@ -36,8 +52,8 @@ export default function Admin() {
   };
 
   // Gestione della modifica dei dati di un modulo
-  const handleInputChange = (moduleId, field, value) => {
-    setEditedModules((prev) => ({
+  const handleInputChange = (moduleId: string | number, field: string, value: string) => {
+    setEditedModules((prev: EditedModules) => ({
       ...prev,
       [moduleId]: {
         ...(prev[moduleId] || {}),
