@@ -18,6 +18,16 @@ export async function GET(request: Request, { params }: Params) {
     // Estrai l'id della pagina dai parametri
     const { id } = params;
 
+    // Se l'utente non ha specificato un id, restituisci tutte le pagine
+    if (id === "all") {
+      console.log("Recupero di tutte le pagine");
+      const pages = await Page.find();
+      return new Response(JSON.stringify(pages), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Recupera la pagina corrispondente all'id
     const page = await Page.findOne({ id });
 
@@ -50,22 +60,45 @@ export async function GET(request: Request, { params }: Params) {
 }
 
 // PUT: Aggiorna i dati della pagina
-export async function PUT(request: NextRequest) {
-  const body = await request.json();
-  const { modules } = body;
-
+// app/api/pages/[id]/route.ts
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    await connectDB(); // Connetti al database
-    const page = await Page.findOne({ id: "about-us" });
+    // Connetti al database
+    await connectDB();
+    console.log("Connesso a MongoDB");
 
-    if (!page) {
-      return NextResponse.json(
-        { message: "Pagina non trovata" },
-        { status: 404 }
+    // Estrai l'id della pagina dai parametri
+    const { id } = params;
+
+    // Parsa il corpo della richiesta
+    const body = await request.json();
+    const { modules } = body;
+
+    if (!Array.isArray(modules)) {
+      return new Response(
+        JSON.stringify({ message: "I moduli devono essere un array" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Aggiorna i moduli
+    // Recupera la pagina corrispondente all'id
+    const page = await Page.findOne({ id });
+
+    if (!page) {
+      console.log(`Pagina con ID '${id}' non trovata`);
+      return new Response(
+        JSON.stringify({ message: "Pagina non trovata" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Aggiorna i moduli della pagina
     page.modules = modules.map((module: any) => {
       const existingModule = page.modules.find(
         (m: any) => m._id.toString() === module._id
@@ -73,14 +106,25 @@ export async function PUT(request: NextRequest) {
       return existingModule ? { ...existingModule, ...module } : module;
     });
 
+    // Salva le modifiche nel database
     await page.save();
 
-    return NextResponse.json({ message: "Modifiche salvate" });
+    // Restituisci una risposta di successo
+    return new Response(
+      JSON.stringify({ message: "Modifiche salvate con successo" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { message: "Errore interno del server" },
-      { status: 500 }
+    console.error("Errore durante l'aggiornamento della pagina:", error);
+    return new Response(
+      JSON.stringify({ message: "Errore interno del server" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }
