@@ -1,6 +1,7 @@
 // app/api/pages/[id]/route.js
 import  connectDB from "@/app/utils/db";
 import Page from "@/app/models/Page";
+import { NextRequest, NextResponse } from "next/server";
 
 interface Params {
   params: {
@@ -44,6 +45,42 @@ export async function GET(request: Request, { params }: Params) {
         status: 500,
         headers: { "Content-Type": "application/json" },
       }
+    );
+  }
+}
+
+// PUT: Aggiorna i dati della pagina
+export async function PUT(request: NextRequest) {
+  const body = await request.json();
+  const { modules } = body;
+
+  try {
+    await connectDB(); // Connetti al database
+    const page = await Page.findOne({ id: "about-us" });
+
+    if (!page) {
+      return NextResponse.json(
+        { message: "Pagina non trovata" },
+        { status: 404 }
+      );
+    }
+
+    // Aggiorna i moduli
+    page.modules = modules.map((module: any) => {
+      const existingModule = page.modules.find(
+        (m: any) => m._id.toString() === module._id
+      );
+      return existingModule ? { ...existingModule, ...module } : module;
+    });
+
+    await page.save();
+
+    return NextResponse.json({ message: "Modifiche salvate" });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "Errore interno del server" },
+      { status: 500 }
     );
   }
 }

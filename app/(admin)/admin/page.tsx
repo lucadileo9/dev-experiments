@@ -1,104 +1,81 @@
-'use client';
-import { useState } from 'react';
-import { pages } from '../../db';
+// app/about-us/edit.tsx
+"use client";
 
-export default function EditHomePage() {
-  const [modules, setModules] = useState(pages.home.modules);
-  type ModuleType = keyof typeof modules;
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-  const updateModuleData = (moduleType: ModuleType, field: string, value: string) => {
-    
-    setModules({
-      ...modules,
-      [moduleType]: {
-        ...modules[moduleType],
-        [field]: value,
+export default function EditAboutUs() {
+  const [modules, setModules] = useState([]);
+  const [editedModules, setEditedModules] = useState({});
+
+  // Fetch dei moduli al caricamento
+  useEffect(() => {
+    async function fetchModules() {
+      try {
+        const res = await axios.get("/api/pages/about-us");
+        setModules(res.data.modules);
+      } catch (error) {
+        console.error("Errore durante il caricamento dei moduli:", error);
+      }
+    }
+    fetchModules();
+  }, []);
+
+  // Gestione della modifica dei dati di un modulo
+  const handleInputChange = (moduleId: string, field: string, value: any) => {
+    setEditedModules((prev) => ({
+      ...prev,
+      [moduleId]: {
+        ...(prev[moduleId] || {}),
+        data: {
+          ...(prev[moduleId]?.data || {}),
+          [field]: value,
+        },
       },
-    });
+    }));
+  };
+
+  // Salva le modifiche
+  const handleSave = async () => {
+    try {
+      const updatedModules = modules.map((module) => {
+        const editedModule = editedModules[module._id];
+        return editedModule ? { ...module, ...editedModule } : module;
+      });
+
+      await axios.put("/api/pages/about-us", { modules: updatedModules });
+      alert("Modifiche salvate con successo!");
+    } catch (error) {
+      console.error("Errore durante il salvataggio:", error);
+      alert("Si è verificato un errore durante il salvataggio.");
+    }
   };
 
   return (
-      <div className="min-h-screen bg-purple-100 p-8">
-        <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
-          <h1 className="text-2xl font-bold text-purple-700 mb-6 text-center">Modifica Pagina Home</h1>
-    
-          {/* Form per il modulo Hero */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-purple-600 mb-4">Hero</h2>
-            <div className="space-y-4">
+    <div>
+      <h1>Modifica Pagina About Us</h1>
+
+      {/* Form per ogni modulo */}
+      {modules.map((module) => (
+        <div key={module._id}>
+          <h2>{module.type}</h2>
+          {Object.keys(module.data).map((field) => (
+            <div key={field}>
+              <label>{field}:</label>
               <input
                 type="text"
-                placeholder="Titolo"
-                value={modules.hero.title}
-                onChange={(e) => updateModuleData('hero', 'title', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <input
-                type="text"
-                placeholder="Sottotitolo"
-                value={modules.hero.subtitle}
-                onChange={(e) => updateModuleData('hero', 'subtitle', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <input
-                type="text"
-                placeholder="Immagine"
-                value={modules.hero.image}
-                onChange={(e) => updateModuleData('hero', 'image', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                value={editedModules[module._id]?.data?.[field] || module.data[field]}
+                onChange={(e) =>
+                  handleInputChange(module._id, field, e.target.value)
+                }
               />
             </div>
-          </div>
-    
-          {/* Form per il modulo Sub-Hero */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-purple-600 mb-4">Sub-Hero</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Titolo"
-                value={modules['sub-hero'].title}
-                onChange={(e) =>
-                  updateModuleData('sub-hero', 'title', e.target.value)
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <textarea
-                placeholder="Contenuto"
-                value={modules['sub-hero'].content}
-                onChange={(e) =>
-                  updateModuleData('sub-hero', 'content', e.target.value)
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-              />
-            </div>
-          </div>
-    
-          {/* Form per il modulo Location */}
-          <div>
-            <h2 className="text-xl font-semibold text-purple-600 mb-4">Location</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Indirizzo"
-                value={modules.location.address}
-                onChange={(e) =>
-                  updateModuleData('location', 'address', e.target.value)
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <input
-                type="text"
-                placeholder="URL Mappa"
-                value={modules.location.mapUrl}
-                onChange={(e) =>
-                  updateModuleData('location', 'mapUrl', e.target.value)
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-          </div>
+          ))}
         </div>
-      </div>
+      ))}
+
+      {/* Bottone per salvare */}
+      <button onClick={handleSave}>Salva Modifiche</button>
+    </div>
   );
 }
