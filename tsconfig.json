@@ -27,6 +27,6 @@
       "@organisms/*": ["./app/components/organisms/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/models/Page.js"],
   "exclude": ["node_modules"]
 }
