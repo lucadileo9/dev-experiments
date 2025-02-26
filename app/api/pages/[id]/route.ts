@@ -31,6 +31,7 @@ export async function GET(request: Request, { params }: Params) {
     // Recupera la pagina corrispondente all'id
     const page = await Page.findOne({ id });
 
+    // Se la pagina non esiste, restituisci un errore 404
     if (!page) {
       console.log(`Pagina con ID '${id}' non trovata`);
       return new Response(
@@ -74,6 +75,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const body = await request.json();
     const { modules } = body;
 
+    // Verifica che i moduli siano un array
     if (!Array.isArray(modules)) {
       return new Response(
         JSON.stringify({ message: "I moduli devono essere un array" }),
@@ -99,11 +101,13 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     // Aggiorna i moduli della pagina
-    page.modules = modules.map((module: any) => {
-      const existingModule = page.modules.find(
+    page.modules = modules.map((module: any) => { // Itero attraverso i moduli passati nella richiesta
+      const existingModule = page.modules.find( // Cerco un modulo esistente (nel DB) con lo stesso id
         (m: any) => m._id.toString() === module._id
       );
-      return existingModule ? { ...existingModule, ...module } : module;
+      return existingModule ? // Trovato?
+       { ...existingModule, ...module }  // sì, allora ne mantengo le proprietà e sovrascrivo quelle nuove (...module)
+       : module; // no, allora lo aggiungo. In realta questo caso non dovrebbe mai verificarsi
     });
 
     // Salva le modifiche nel database
