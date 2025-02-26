@@ -22,12 +22,14 @@
     "@types/react-dom": "18.2.4",
     "autoprefixer": "10.4.14",
     "axios": "^1.7.9",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "classnames": "^2.3.2",
     "clsx": "^2.1.1",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
     "hamburger-react": "^2.5.0",
+    "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.469.0",
     "mongoose": "^8.10.1",
     "next": "13.4.4",
@@ -42,6 +44,7 @@
     "typescript": "5.0.4"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
     "plop": "^4.0.0"
   }
 }
