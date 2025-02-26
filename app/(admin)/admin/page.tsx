@@ -128,24 +128,37 @@ export default function Admin() {
    * @throws Will throw an error if the save operation fails.
    */
   const handleSave = async () => {
-  // Creiamo l'array updatedModules che contiene i moduli aggiornati. 
-  // L'array viene creato mappando i moduli originali e applicando una trasformazione a ciascun elemento, con una funzione di callback scritta come arrow function.
-    try {
-      const updatedModules = modules.map((module) => {   // Quindi iteriamo su tutti i moduli originali e, per ciascuno di essi,
-        const editedModule = editedModules[module._id];   //  controlliamo se esiste un modulo corrispondente in editedModules.
-        return editedModule ?  // esiste ?
-        { ...module, ...editedModule }  // sì, combiniamo il modulo originale con le modifiche
-        : module; //  no, lasciamo il modulo originale invariato
-      });
+    // Per prima cosa controlliamo che non ci siano campi vuoti nei moduli modificati.
+    const hasEmptyFields = modules.some((module) => {
+      const editedData = editedModules[module._id]?.data || module.data;
 
-      // Effettuiamo una richiesta PUT per aggiornare i moduli della pagina selezionata
-      // passando l'array updatedModules come corpo della richiesta.
-      await axios.put(`/api/pages/${selectedPageId}`, { modules: updatedModules });
-      alert("Modifiche salvate con successo!");
-    } catch (error) {
-      console.error("Errore durante il salvataggio:", error);
-      alert("Si è verificato un errore durante il salvataggio.");
-    }
+      // Controlla tutti i campi del modulo
+      return Object.values(editedData).some((value) => !value?.trim());
+    });
+
+    // Se ci sono campi vuoti, interrompi il salvataggio
+    if (hasEmptyFields) {
+      alert("Tutti i campi sono obbligatori. Compila tutti i campi prima di salvare.");
+      return;
+    }  
+    try {
+        // Creiamo l'array updatedModules che contiene i moduli aggiornati. 
+        // L'array viene creato mappando i moduli originali e applicando una trasformazione a ciascun elemento, con una funzione di callback scritta come arrow function.
+        const updatedModules = modules.map((module) => {   // Quindi iteriamo su tutti i moduli originali e, per ciascuno di essi,
+          const editedModule = editedModules[module._id];   //  controlliamo se esiste un modulo corrispondente in editedModules.
+          return editedModule ?  // esiste ?
+          { ...module, ...editedModule }  // sì, combiniamo il modulo originale con le modifiche
+          : module; //  no, lasciamo il modulo originale invariato
+        });
+
+        // Effettuiamo una richiesta PUT per aggiornare i moduli della pagina selezionata
+        // passando l'array updatedModules come corpo della richiesta.
+        await axios.put(`/api/pages/${selectedPageId}`, { modules: updatedModules });
+        alert("Modifiche salvate con successo!");
+      } catch (error) {
+        console.error("Errore durante il salvataggio:", error);
+        alert("Si è verificato un errore durante il salvataggio.");
+      }
   };
 
   return (
@@ -192,7 +205,7 @@ export default function Admin() {
                 <input
                   type="text"
                   id={field}
-                  value={editedModules[module._id]?.data?.[field] || module.data[field]} // Se esiste un valore modificato, lo mostriamo, altrimenti mostriamo il valore originale.
+                  value={editedModules[module._id]?.data?.[field] ?? module.data[field]} // Se esiste un valore modificato, lo mostriamo, altrimenti mostriamo il valore originale.
                   onChange={(e) =>
                     handleInputChange(module._id, field, e.target.value)
                   }
