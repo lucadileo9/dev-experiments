@@ -3,7 +3,7 @@ import { Key } from "react";
 
 
 // Componente AboutUs
-export default async function AboutUs({  }: { page: any }) {
+export default async function AboutUs( ) {
   const res = await fetch('http://localhost:3000/api/pages/about-us', { next: { revalidate: 0 } });
   const datas = await res.json();
   console.log(datas);
