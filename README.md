@@ -58,18 +58,6 @@ python 2_exe.py  # Per esercizio 2
 - **Protocollo TCP/IP**: Gestione connessioni affidabili
 - **Gestione Errori**: Robustezza in ambienti distribuiti
 
-### **Competenze Tecniche**
-- **Buffer Management**: Gestione dati di grandi dimensioni
-- **Encoding UTF-8**: Compatibilità internazionale
-- **Timeout Handling**: Prevenzione blocchi infiniti
-- **Error Handling**: FileNotFound, UnicodeError, Permission
-
-### **Best Practices**
-- Chiusura esplicita delle connessioni
-- Gestione robusta delle eccezioni
-- Segnalazione EOF con `shutdown()`
-- Pattern di comunicazione standardizzati
-
 ---
 
 ## 📁 Struttura File
@@ -96,7 +84,6 @@ Ogni esercizio include:
 - **Documentazione tecnica** completa (`.md`)
 - **Diagrammi architetturali** e flussi di comunicazione
 - **Esempi pratici** e casi d'uso
-- **Troubleshooting** e risoluzione errori comuni
 ---
 
 *Materiale didattico per il corso di **Algoritmi Distribuiti***  
