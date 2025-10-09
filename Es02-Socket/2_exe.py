@@ -80,24 +80,29 @@ def server():
                         with open(data, 'r', encoding='utf-8') as file:
                             file_content = file.read()
                             client_socket.send(file_content.encode('utf-8'))
+                            # Chiudiamo la connessione di scrittura per segnalare fine trasmissione
+                            client_socket.shutdown(socket.SHUT_WR)
                             print(f"📤 Contenuto del file '{data}' inviato al client")
                     
                     except FileNotFoundError:
                         # Gestione file non trovato
                         error_message = f"ERRORE: File '{data}' non trovato sul server"
                         client_socket.send(error_message.encode('utf-8'))
+                        client_socket.shutdown(socket.SHUT_WR)
                         print(f"⚠️  File '{data}' non trovato - messaggio di errore inviato al client")
                     
                     except UnicodeDecodeError as e:
                         # Gestione errori di encoding
                         error_message = f"ERRORE: Impossibile leggere il file '{data}' - problemi di encoding"
                         client_socket.send(error_message.encode('utf-8'))
+                        client_socket.shutdown(socket.SHUT_WR)
                         print(f"⚠️  Errore di encoding nel file '{data}': {e}")
                     
                     except PermissionError:
                         # Gestione errori di permessi
                         error_message = f"ERRORE: Permessi insufficienti per leggere il file '{data}'"
                         client_socket.send(error_message.encode('utf-8'))
+                        client_socket.shutdown(socket.SHUT_WR)
                         print(f"⚠️  Permessi insufficienti per il file '{data}'")
                     
                 else:
@@ -183,14 +188,10 @@ def client():
                 try:
                     # Ricevi dati in chunks
                     chunk = client_socket.recv(4096).decode('utf-8')
-                    if not chunk:
+                    if not chunk:  # Connessione chiusa dal server
                         break
                     response_parts.append(chunk)
                     
-                    # Se il chunk è più piccolo del buffer, probabilmente abbiamo finito
-                    if len(chunk) < 4096:
-                        break
-                        
                 except socket.timeout:
                     break
             
