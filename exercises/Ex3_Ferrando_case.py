@@ -22,10 +22,11 @@ M = Bool('M')
 B = Bool('B')
 
 # I = Prof. Ferrando is innocent;
-...
+I = Bool('I')
 
 # P = the murder weapon is a 3D printer.
-...
+P = Bool('P')
+
 
 s = Solver()
 
@@ -33,14 +34,20 @@ s = Solver()
 s.add(Implies(M,Or(Not(B),I)))
 
 # 2) not I => P
-# ...
+s.add(Implies(Not(I), P))
 
-# 3) ...
-# ...
+# 3) P and B => M
+s.add(Implies(And(P,B), M))
+
 
 # assert B
+s.add(B) # perché sappiamo per certo che la scena del crimine è la Batcave
 
-if ... :
+# if s.check() == sat: --> Errato, perché sto solo controllando se esista una soluzione
+
+# Dobbiamo assumere che lui sia colpevole
+s.add(Not(I))
+if s.check() == unsat: # se non esiste nessuna soluzione significa che Prof. Ferrando è innocente
     print("Prof. Ferrando is innocent")
 else:
     print("Prof. Ferrando could be guilty")
