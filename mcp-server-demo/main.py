@@ -984,6 +984,6 @@ Formato ottimale per SMS o email.
         return f"Errore: {str(e)}"
 
 
-# Run with streamable HTTP transport
+# Run with STDIO transport for Claude Desktop
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    mcp.run()
