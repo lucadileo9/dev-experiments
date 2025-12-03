@@ -68,7 +68,7 @@ public class GreetLocalTimeClient {
             System.out.println("=".repeat(50));
 
         } catch (java.rmi.NotBoundException e) {
-            System.err.println("❌ Servizio 'StringReverseService' non trovato nel Registry");
+            System.err.println("❌ Servizio 'GreetLocalTimeService' non trovato nel Registry");
             System.err.println("   Assicurati che il server RMI sia in esecuzione");
         } catch (java.rmi.ConnectException e) {
             System.err.println("❌ Impossibile connettersi al Registry RMI");
