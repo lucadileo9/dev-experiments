@@ -1,11 +1,48 @@
-# DevOps Capstone Template
+# DevOps Capstone Project
 
 ![Build Status](https://github.com/lucadileo9/devops-capstone-project/actions/workflows/ci-build.yaml/badge.svg)
-
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.9](https://img.shields.io/badge/Python-3.9-green.svg)](https://shields.io/)
 
-This repository contains the starter code for the project in [**IBM-CD0285EN-SkillsNetwork DevOps Capstone Project**](https://www.coursera.org/learn/devops-capstone-project?specialization=devops-and-software-engineering) which is part of the [**IBM DevOps and Software Engineering Professional Certificate**](https://www.coursera.org/professional-certificates/devops-and-software-engineering)
+IBM DevOps capstone project - Python application with complete CI/CD pipeline, Kubernetes deployment, and Tekton workflows.
+
+## 🎯 Objective
+
+Learn modern DevOps practices through a complete project:
+- Continuous Integration/Continuous Deployment (CI/CD)
+- Containerization with Docker
+- Orchestration with Kubernetes
+- Automated pipelines with Tekton
+- Automated testing
+- Infrastructure as Code
+
+## 🛠️ Tech Stack
+
+- **Python 3.9** - Backend language
+- **Flask** - Web framework
+- **PostgreSQL** - Database
+- **Docker** - Containerization
+- **Kubernetes** - Container orchestration
+- **Tekton** - CI/CD pipeline
+- **GitHub Actions** - Workflow automation
+- **OpenShift** - Platform as a Service
+
+## 💡 What I Learned
+
+- Setup and management of complete CI/CD pipelines
+- Python application containerization
+- Deployment on Kubernetes/OpenShift
+- Tekton tasks and pipeline configuration
+- Automated testing and code quality
+- GitOps workflows
+- Secrets and configuration management
+- Application monitoring and logging
+
+---
+
+**Source**: [IBM-CD0285EN-SkillsNetwork DevOps Capstone Project](https://www.coursera.org/learn/devops-capstone-project?specialization=devops-and-software-engineering) - [IBM DevOps and Software Engineering Professional Certificate](https://www.coursera.org/professional-certificates/devops-and-software-engineering)
+
+I left the original README content from the course repository below for reference.
 
 ## Usage
 
