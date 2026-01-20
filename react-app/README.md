@@ -1,49 +1,98 @@
-# Getting Started with Create React App
+# React Experiments
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
 
-## Available Scripts
+Playground to experiment with React's basic features.
 
-In the project directory, you can run:
+## 🎯 Objective
 
-### `npm start`
+Learn React fundamentals through small components and practical examples:
+- State management with hooks
+- Props and component composition
+- Event handling
+- Conditional rendering
+- Component lifecycle
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🛠️ Tech Stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **React 18** - UI library
+- **Create React App** - Toolchain setup
+- **JavaScript (ES6+)** - Main language
 
-### `npm test`
+## 💡 What I Learned
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **useState Hook** - Local state management in components
+- **Component Composition** - Building complex UIs from simple components
+- **Props Drilling** - Passing data between components
+- **Event Handling** - Managing clicks, inputs, and other events
+- **Conditional Rendering** - Showing/hiding elements dynamically
+- **Component Organization** - Structuring a React project
 
-### `npm run build`
+## 🧩 Example Components
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- **GuessNumber.js** - Number guessing game (state, events, logic)
+- **Video.js** - Video player component
+- **Contact.js** - Contact form
+- **Btn.js** - Reusable button
+- **Heading.js** - Heading component
+- **Homepage.js** - Main page
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 🚀 Setup
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Prerequisites
+- Node.js 14+
+- npm
 
-### `npm run eject`
+### Installation and Start
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+# Install dependencies
+npm install
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Start in development mode
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Browser will automatically open at [http://localhost:3000](http://localhost:3000)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Other Commands
 
-## Learn More
+```bash
+# Run tests
+npm test
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# Build for production
+npm run build
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# Analyze bundle
+npm run build
+npm install -g serve
+serve -s build
+```
+
+## 📁 Structure
+
+```
+src/
+├── App.js              # Main component
+├── App.css             # App styles
+├── index.js            # Entry point
+├── GuessNumber.js      # Number guessing game
+├── Video.js            # Video player
+├── Contact.js          # Contact form
+├── Btn.js              # Button component
+├── Heading.js          # Heading component
+└── Homepage.js         # Homepage
+```
+
+## 📝 Notes
+
+I did this project during the two courses I took on React on Coursera.
+- Project based on Create React App
+- Focus on learning React basics
+- Each component explores a specific concept
+- Code intentionally simple for didactic clarity
 
 ### Code Splitting
 
