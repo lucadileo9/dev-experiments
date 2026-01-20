@@ -1,26 +1,52 @@
-# Esercitazioni di Algoritmi Distribuiti
+# Distributed Algorithms Exercises
 
-Repository contenente esercitazioni pratiche per il corso di **Algoritmi Distribuiti**, focalizzate su programmazione di rete, sistemi distribuiti e comunicazione client-server.
+Repository containing practical exercises for the **Distributed Algorithms** course, focused on network programming, distributed systems, and client-server communication.
+
+## 🎯 Objective
+
+Learn the fundamentals of distributed algorithms and systems through practical implementations:
+- Socket programming and TCP communication
+- Remote Method Invocation (RMI)
+- Client-server architectures
+- Data serialization and transmission
+- Connection management and network protocols
+
+## 🛠️ Tech Stack
+
+- **Python 3.7+** - Socket programming exercises
+- **Java 8+** - RMI exercises
+- **TCP Protocol** - Network communication
+- **Object Serialization** - Data transmission
+
+## 💡 What I Learned
+
+- TCP socket creation and management
+- Client-server communication patterns
+- File transfer protocols
+- Remote Method Invocation in Java
+- Distributed object systems
+- Network error handling
+- Multi-client server architectures
 
 ---
 
-## Panoramica Esercitazioni
+## Exercises Overview
 
-| # | Nome | Linguaggio | Argomento | 
-|---|------|-----------|-----------|
+| # | Name | Language | Topic | 
+|---|------|----------|-------|
 | **Es02** | Socket Programming | Python 3.7+ | TCP, Client-Server | 
 | **Es03** | Remote Method Invocation | Java 8+ | RMI, Distributed Objects | 
 
 ---
 
-## Es02-Socket - Programmazione Socket TCP
+## Es02-Socket - TCP Socket Programming
 
-Esercitazioni fondamentali su socket programming e comunicazione client-server in Python.
+Fundamental exercises on socket programming and client-server communication in Python.
 
-### Esercizio 1: String Reversal
+### Exercise 1: String Reversal
 
 ```
-Consegna:
+Assignment:
 
 Server side
 - Receives a string of variable length
@@ -31,16 +57,16 @@ Client side
 - Receives an elaborated string
 - Prints the received string
 
-Obiettivo: Sistema client-server per inversione di stringhe  
-File: `Es02-Socket/1_exe.py`, `1_ese.md`  
+Objective: Client-server system for string reversal
+Files: `Es02-Socket/1_exe.py`, `1_ese.md`
 
-Concetti: Socket TCP, encoding UTF-8, gestione connessioni  
+Concepts: TCP sockets, UTF-8 encoding, connection management
 ```
 
-### Esercizio 2: File Transfer
+### Exercise 2: File Transfer
 
 ```
-Consegna:
+Assignment:
 
 Server side
 - Receives the name of a file
@@ -51,57 +77,54 @@ Client side
 - Receives the content of the requested file
 - Writes the content to a new local file
 
-Obiettivo: Trasferimento di file via rete con gestione errori robusta  
+Objective: File transfer over the network with robust error handling  
 File: `Es02-Socket/2_exe.py`, `2_ese.md`  
 
-Concetti: Buffer dinamici, gestione file, encoding, timeout  
+Concepts: Dynamic buffers, file management, encoding, timeout  
 ```
 ---
 
 ## Es03-RMI - Remote Method Invocation (Java)
 
-Sistema di comunicazione client-server basato su RMI per l'invocazione di metodi remoti.
+Client-server communication system based on RMI for remote method invocation.
 
-### Esercizio 1: String Reversal
+### Exercise 1: String Reversal
 ```
-Consegna:
-
+Assignment:
 The server accepts a string as argument and returns the overturned string. The client sends a string, receives an elaborated string and prints the received string.
 
-Obiettivo: Sistema RMI per inversione di stringhe  
-Percorso: `Es03-RMI/01_reverse_string/`  
-File principali:
-- `StringReverseInterface.java` - Interfaccia remota
-- `StringReverseServerRMI.java` - Server RMI
-- `StringReverseClientRMI.java` - Client RMI
-- `README.md` - Documentazione completa
-
-Concetti: RMI, Remote Objects, Registry, Stub/Skeleton  
+Objective: RMI system for string reversal  
+Path: `Es03-RMI/01_reverse_string/`  
+Main files:
+- `StringReverseInterface.java` - Remote interface
+- `StringReverseServerRMI.java` - RMI server
+- `StringReverseClientRMI.java` - RMI client
+- `README.md` - Complete documentation
+Concepts: RMI, Remote Objects, Registry, Stub/Skeleton  
 ```
-### Esercizio 2: Greet and Local Time
+### Exercise 2: Greet and Local Time
 ```
-Consegna:
-
+Assignment:
 The server provides 2 services:
 - Greeting
 - Local time
 
 The client receives from command line an argument specifying the service to ask to the server.
 
-Obiettivo: Servizio RMI per saluti personalizzati e ora locale  
-Percorso: `Es03-RMI/02_greet_and_local_time/`  
-File principali:
-- `GreetLocalTimeInterface.java` - Interfaccia remota
-- `GreetLocalTimeServer.java` - Server RMI
-- `GreetLocalTimeClient.java` - Client RMI
-- `README.md` - Documentazione completa
+Objective: RMI service for personalized greetings and local time  
+Path: `Es03-RMI/02_greet_and_local_time/`  
+Main files:
+- `GreetLocalTimeInterface.java` - Remote interface
+- `GreetLocalTimeServer.java` - RMI server
+- `GreetLocalTimeClient.java` - RMI client
+- `README.md` - Complete documentation
 
-Concetti: Metodi multipli remoti, java.time API, Registry RMI  
+Concepts: Multiple remote methods, java.time API, RMI Registry  
 ```
-### Esercizio 3: File Access
+### Exercise 3: File Access
 
 ```
-Consegna:
+Assignment:
 
 The server receives:
 - The name of a file
@@ -114,185 +137,182 @@ The client:
 - Receives the read byte
 - Writes the byte to a local file
 
-Obiettivo: Accesso remoto ai file con lettura selettiva di byte  
-Percorso: `Es03-RMI/03_file_access/`  
-File principali:
-- `FileAccessInterface.java` - Interfaccia remota
-- `FileAccessServer.java` - Server RMI con gestione file
-- `FileAccessClient.java` - Client RMI con input interattivo
-- `README.md` - Documentazione completa
+Objective: Remote file access with selective byte reading  
+Path: `Es03-RMI/03_file_access/`  
+Main files:
+- `FileAccessInterface.java` - Remote interface
+- `FileAccessServer.java` - RMI server with file management
+- `FileAccessClient.java` - RMI client with interactive input
+- `README.md` - Complete documentation
 
-Concetti: File I/O remoto, input utente, gestione eccezioni RMI, Scanner  
+Concepts: Remote file I/O, user input, RMI exception handling, Scanner  
 ```
 ---
 
-## Guida Rapida per l'Esecuzione
+## Quick Start Guide for Execution
 
 ### Python (Es02-Socket)
 
-**Prerequisiti**:
+**Prerequisites**:
 - Python 3.7+
-- Nessuna libreria esterna richiesta (solo moduli standard)
+- No external libraries required (standard modules only)
 
-**Esecuzione**:
+**Execution**:
 ```bash
-# Naviga nella cartella
+# Navigate to the folder
 cd Es02-Socket
 
-# Avvia il programma
-python 1_exe.py  # Esercizio 1
-python 2_exe.py  # Esercizio 2
+# Run the program
+python 1_exe.py  # Exercise 1
+python 2_exe.py  # Exercise 2
 
-# Segui il menu interattivo:
-# [s] Server - Avvia il server
-# [c] Client - Avvia il client  
-# [h] Help   - Guida dettagliata
+# Follow the interactive menu:
+# [s] Server - Start the server
+# [c] Client - Start the client  
+# [h] Help   - Detailed guide
 ```
 
 ### Java (Es03-RMI)
 
-**Prerequisiti**:
+**Prerequisites**:
 - Java 8+ (JDK)
 - `javac` compiler
-- Nessuna libreria esterna
+- No external libraries
 
-**Esecuzione**:
+**Execution**:
 ```bash
-# Naviga nella cartella dell'esercizio
-cd Es03-RMI/01_reverse_string  # (o 02_greet_and_local_time, o 03_file_access)
+# Navigate to the exercise folder
+cd Es03-RMI/01_reverse_string  # (or 02_greet_and_local_time, or 03_file_access)
 
-# 1. Compilazione
+# 1. Compilation
 javac *Interface.java *Server.java *Client.java
 
-# 2. Avvia il server (Terminale 1)
+# 2. Start the server (Terminal 1)
 java *Server
 
-# 3. Avvia il client (Terminale 2)
+# 3. Start the client (Terminal 2)
 java *Client
 ```
 
 ---
 
-## Obiettivi Didattici
+## Educational Objectives
 
-### Concetti Fondamentali Coperti
+### Fundamental Concepts Covered
 
 #### Socket Programming (Python)
-- Creazione e gestione socket TCP
-- Architettura Client-Server
-- Protocollo TCP/IP
-- Gestione errori robusti
-- Serializzazione dati (UTF-8, Binary)
+- Creation and management of TCP sockets
+- Client-Server Architecture
+- TCP/IP Protocol
+- Robust error handling
+- Data serialization (UTF-8, Binary)
 
 #### Remote Method Invocation (Java)
 - Distributed Objects
 - Remote Interfaces
 - RMI Registry (naming service)
-- Stub e Skeleton
+- Stub and Skeleton
 - Marshalling/Unmarshalling
-- Gestione eccezioni di rete
-- File I/O remoto
-- Input/Output interattivo
-
+- Network exception handling
+- Remote File I/O
+- Interactive Input/Output
 ---
 
 ## Struttura Directory
 
 ```
-algoritmi_distribuiti_esercitazioni/
+distributed_algorithms_exercises/
 │
-├── README.md                                  # Questo file
-├── .gitignore                                 # Configurazione Git
+├── README.md                                  # This file
+├── .gitignore                                 # Git configuration
 │
-├── Es02-Socket/                               # Esercitazioni Socket TCP (Python)
-│   ├── 1_exe.py                               # Esercizio 1: String Reversal
-│   ├── 1_ese.md                               # Documentazione Es02-01
-│   ├── 2_exe.py                               # Esercizio 2: File Transfer
-│   ├── 2_ese.md                               # Documentazione Es02-02
-│   ├── java/                                  # Versione Java opzionale
+├── Es02-Socket/                               # TCP Socket Exercises (Python)
+│   ├── 1_exe.py                               # Exercise 1: String Reversal
+│   ├── 1_ese.md                               # Documentation Es02-01
+│   ├── 2_exe.py                               # Exercise 2: File Transfer
+│   ├── 2_ese.md                               # Documentation Es02-02
+│   ├── java/                                  # Optional Java version
 │   │   ├── StringReverseClient.java
 │   │   └── StringReverseServer.java
-│   ├── prova                                  # File di test
-│   ├── received_*                             # File ricevuti (generati)
+│   ├── prova                                  # Test files
+│   ├── received_*                             # Received files (generated by client)
 │   └── ...
 │
-└── Es03-RMI/                                  # Esercitazioni RMI (Java)
+└── Es03-RMI/                                  # RMI Exercises (Java)
     │
-    ├── 01_reverse_string/                     # Es03-01: String Reversal con RMI
-    │   ├── StringReverseInterface.java        # Interfaccia remota
-    │   ├── StringReverseServerRMI.java        # Server RMI
-    │   ├── StringReverseClientRMI.java        # Client RMI
-    │   ├── README.md                          # Documentazione dettagliata
-    │   └── *.class                            # File compilati
+    ├── 01_reverse_string/                     # Es03-01: String Reversal with RMI
+    │   ├── StringReverseInterface.java        # Remote interface
+    │   ├── StringReverseServerRMI.java        # RMI server
+    │   ├── StringReverseClientRMI.java        # RMI client
+    │   ├── README.md                          # etailed documentation
+    │   └── *.class                            # Compiled files
     │
-    ├── 02_greet_and_local_time/               # Es03-02: Greet & Time con RMI
-    │   ├── GreetLocalTimeInterface.java       # Interfaccia remota
-    │   ├── GreetLocalTimeServer.java          # Server RMI
-    │   ├── GreetLocalTimeClient.java          # Client RMI
-    │   ├── README.md                          # Documentazione dettagliata
-    │   └── *.class                            # File compilati
+    ├── 02_greet_and_local_time/               # Es03-02: Greet & Time with RMI
+    │   ├── GreetLocalTimeInterface.java       # Remote interface
+    │   ├── GreetLocalTimeServer.java          # RMI server
+    │   ├── GreetLocalTimeClient.java          # RMI client
+    │   ├── README.md                          # Detailed documentation
+    │   └── *.class                            # Compiled files
     │
-    └── 03_file_access/                        # Es03-03: File Access con RMI
-        ├── FileAccessInterface.java           # Interfaccia remota
-        ├── FileAccessServer.java              # Server RMI + File I/O
-        ├── FileAccessClient.java              # Client RMI + Input interattivo
-        ├── input.txt                          # File di test remoto
-        ├── output.txt                         # File generato dal client
-        ├── README.md                          # Documentazione dettagliata
-        └── *.class                            # File compilati
+    └── 03_file_access/                        # Es03-03: File Access with RMI
+        ├── FileAccessInterface.java           # Remote interface
+        ├── FileAccessServer.java              # RMI server + File I/O
+        ├── FileAccessClient.java              # RMI client + Interactive input
+        ├── input.txt                          # Remote test file
+        ├── output.txt                         # File generated by client
+        ├── README.md                          # etailed documentation
+        └── *.class                            # Compiled files
 ```
 
 ---
 
 ## Documentazione
 
-Ogni esercizio include:
-- Codice completamente commentato con spiegazioni dettagliate
-- README.md dedicato con:
-  - Panoramica del sistema
-  - Diagrammi mermaid (architettura, sequenze, flussi)
-  - Analisi dettagliata dei componenti
-  - Esempi di esecuzione con output
-  - Concetti teorici spiegati
-  - Troubleshooting e note tecniche
-- Esempi pratici e casi d'uso reali
-- Gestione errori robusta
+Each exercise includes:
+- Fully commented code with detailed explanations
+- Dedicated README.md with:
+  - System overview
+  - Mermaid diagrams (architecture, sequences, flows)
+  - Detailed component analysis
+  - Examples of execution with output
+  - Explained theoretical concepts
+  - Troubleshooting and technical notes
+- Practical examples and real use cases
+- Robust error handling
 
 ---
 
-## Setup Iniziale
-
-### 1. Clona il Repository
+## Initial Setup
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/lucadileo9/algoritmi_distribuiti_esercitazioni.git
-cd algoritmi_distribuiti_esercitazioni
+git clone https://github.com/lucadileo9/distributed_algorithms_exercises.git
+cd distributed_algorithms_exercises
 ```
 
-### 2. Verifica Prerequisiti
-
-**Per Es02 (Python)**:
+### 2. Verify Prerequisites
+**For Es02 (Python)**:
 ```bash
-python --version  # Deve essere 3.7+
+python --version  # Must be 3.7+
 ```
 
-**Per Es03 (Java)**:
+**For Es03 (Java)**:
 ```bash
-java -version     # Deve essere 8+
-javac -version    # Deve essere disponibile
+java -version     # Must be 8+
+javac -version    # Must be available
 ```
 
-### 3. Esegui un Esercizio
+### 3. Run an Exercise
 
 ```bash
-# Esempio: Es03-03 File Access
+# Example: Es03-03 File Access
 cd Es03-RMI/03_file_access
 javac *.java
-java FileAccessServer    # In un terminale
-java FileAccessClient    # In un altro terminale
+java FileAccessServer    # In one terminal
+java FileAccessClient    # In another terminal
 ```
 
 ---
 
-*Materiale didattico per il corso di Algoritmi Distribuiti*  
-*Docente: Prof. Cabri - Università di Modena e Reggio Emilia*  
-*Aggiornato: Dicembre 2025*
+*Educational material for the Distributed Algorithms course*  
+*Instructor: Prof. Cabri - University of Modena and Reggio Emilia*  
+*Updated: December 2025*
