@@ -2,7 +2,7 @@
 
 Personal sandbox for experimenting with new technologies, frameworks, and programming concepts.
 
-## 📖 Description
+## Description
 
 This repository is my practical learning space - a collection of projects and experiments built to explore different technologies, test new ideas, and learn by doing. You won't find production-ready projects or complete applications meant for real-world use here, but rather technical proofs, exercises, and prototypes created with the goal of understanding how things work under the hood.
 
@@ -10,7 +10,7 @@ Each project represents a learning opportunity: it could be a course I followed,
 
 **Note**: These projects are intentionally kept separate from my main portfolio. They are works-in-progress, experiments, and trials that document my continuous learning journey, not polished showcases of my skills.
 
-## 📂 Projects
+## Projects
 
 - **devops-capstone-project** - IBM DevOps capstone project with CI/CD pipeline, Kubernetes deployment, and Tekton workflows, done during my IBM DevOps and Software Engineering Professional Certificate on Coursera
 - **distributed_algorithms_exercises** - University exercises on distributed algorithms: TCP socket programming and RMI
