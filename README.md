@@ -21,7 +21,156 @@ Each project represents a learning opportunity: it could be a course I followed,
 - **react-app** - React playground to experiment with hooks, state management, and component patterns
 - **smt** - Automated reasoning and SMT solving exercises with Z3 solver
 
-## How did I manage to maintain all the history of each projects separated in each branch?
+## How do I create a new project with its own history inside this monorepo?
+
+### Overview
+
+New projects can be developed with their own independent Git history using orphan branches. This approach allows each project to maintain a clean, self-contained history while being part of the monorepo structure.
+
+### Quick Reference
+
+Complete workflow from creation to integration:
+
+```bash
+# Create and initialize
+git checkout --orphan project/PROJECT_NAME
+git rm -rf .
+
+# Develop at repository root
+echo "# Project Name" > README.md
+# ... create your project structure ...
+git add .
+git commit -m "feat: initial project setup"
+
+# Continue development
+# ... make changes ...
+git add .
+git commit -m "feat: add feature X"
+
+# Prepare for integration
+mkdir -p PROJECT_NAME
+ls -A | grep -vE "^\.git$|^PROJECT_NAME$" | xargs -I {} git mv {} PROJECT_NAME/
+git commit -m "refactor: prepare for merge into main"
+
+# Merge into main
+git checkout main
+git merge project/PROJECT_NAME --allow-unrelated-histories -m "feat: add PROJECT_NAME"
+git push origin --all
+```
+
+### Detailed Creation Process
+
+#### Phase 1: Branch Creation and Initial Setup
+
+**Step 1:** Create a new orphan branch for the project.
+
+```bash
+git checkout --orphan project/new-project
+```
+
+> **Note:** Use the naming convention `project/PROJECT_NAME` for consistency.
+
+**Step 2:** Clean the staging area.
+
+```bash
+git rm -rf .
+```
+
+**Step 3:** Create the project structure at the repository root.
+
+```bash
+echo "# New Project" > README.md
+echo "Project description." >> README.md
+mkdir src
+# ... set up your project structure ...
+```
+
+> **Important:** Create files directly in the root of the branch, not in a subfolder. The subfolder structure will be created before merging.
+
+**Step 4:** Make the initial commit.
+
+```bash
+git add .
+git commit -m "feat: initial project setup"
+```
+
+#### Phase 2: Development
+
+**Step 5:** Continue developing normally in the project branch.
+
+```bash
+# Make changes to your project
+echo "console.log('Hello');" > src/index.js
+git add .
+git commit -m "feat: add functionality X"
+
+# Continue with additional commits as needed
+```
+
+> **Note:** Work directly in the project branch. All commits will become part of the project's isolated history.
+
+#### Phase 3: Integration Preparation
+
+**Step 6:** When ready to integrate, restructure into a subfolder.
+
+```bash
+mkdir -p new-project
+ls -A | grep -vE "^\.git$|^new-project$" | xargs -I {} git mv {} new-project/
+git commit -m "refactor: prepare for merge into main"
+```
+
+**Step 7:** Merge into the main branch.
+
+```bash
+git checkout main
+git merge project/new-project --allow-unrelated-histories -m "feat: add new-project"
+```
+
+**Step 8:** Push both branches to remote.
+
+```bash
+git push origin main
+git push origin project/new-project
+```
+
+### Continuous Development Workflow
+
+Once integrated, you can continue developing using the dedicated project branch:
+
+#### Working in the Project Branch
+
+**Option 1: Branch-based development (recommended)**
+
+```bash
+# Switch to project branch
+git checkout project/new-project
+
+# Make changes in the project subfolder
+cd new-project
+# ... make your changes ...
+
+# Commit from repository root
+cd ..
+git add new-project/
+git commit -m "feat: add feature Y"
+git push origin project/new-project
+```
+
+#### Syncing with Main
+
+Periodically merge updates back to main:
+
+```bash
+git checkout main
+git merge project/new-project -m "chore: sync new-project updates"
+git push origin main
+```
+
+> **Tip:** Keep the project branch active if you want to maintain a clean, project-specific history that can be viewed independently.
+
+---
+
+## How did I manage to maintain all the history of each old projects separated in each branch?
 
 ### Overview
 
