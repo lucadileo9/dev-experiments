@@ -7,6 +7,7 @@ stages:
   - test # esecuzione di tutti i test
   - security
   - package 
+  - deploy
 # Qui definiamo l'ordine delle fasi, ossia prima di eseguire i job di test, vengono eseguiti i job di build.
 # Ovviamente i job di test vegnono eseguiti solo se i job di build sono andati a buon fine.
 
@@ -170,3 +171,59 @@ test_runner:
     - echo "✅ Runner funzionante!"
   only:
     - 02-django-base-project
+
+
+deploy_production:
+  stage: deploy
+  tags:
+    - windows  # ← Esegue su self-hosted runner 
+  before_script:
+    - echo "🚀 Preparazione deployment..."
+    
+    # Login GitLab Container Registry
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    
+    # Crea file .env da template con variabili GitLab
+    - echo "📝 Creazione file .env..."
+    - |
+      @"
+      DJANGO_SECRET_KEY=$env:DJANGO_SECRET_KEY
+      DJANGO_SETTINGS_MODULE=django_project.production_settings
+      MYSQL_DATABASE=blog
+      MYSQL_USER=django
+      MYSQL_PASSWORD=$env:MYSQL_PASSWORD
+      MYSQL_ROOT_PASSWORD=$env:MYSQL_ROOT_PASSWORD
+      IMAGE_NAME=$env:DEPLOY_IMAGE_NAME
+      "@ | Out-File -FilePath .env -Encoding UTF8
+    
+    - echo "✅ File .env creato"
+  
+  script:
+    - echo "🐳 Pull immagine da registry..."
+    - docker pull ${env:DEPLOY_IMAGE_NAME}
+    
+    - echo "📦 Deploy con docker-compose..."
+    - docker-compose -f docker-compose.prod.yml down --remove-orphans
+    - docker-compose -f docker-compose.prod.yml up -d
+    
+    - echo "⏳ Attendere avvio container..."
+    - Start-Sleep -Seconds 10
+    
+    - echo "✅ Deployment completato!"
+    - echo "🌐 App disponibile su: http://localhost:8001"
+    
+    - echo "📊 Container in esecuzione:"
+    - docker ps --filter "name=newspaper"
+  
+  after_script:
+    - echo "🧹 Cleanup file .env (sicurezza)..."
+    - Remove-Item .env -ErrorAction SilentlyContinue
+  
+  only:
+    - 02-django-base-project  # Solo su questo branch
+  
+  environment:
+    name: production
+    url: http://localhost:8001
+  
+  when: manual  # ← Richiede conferma manuale (sicurezza)
