@@ -75,6 +75,6 @@ format_check:
   stage: test
   script:
     - pip install black
-    - black --check .  # --check = verifica, non modifica
+    - black --check . --line-length=120  # --check = verifica, non modifica
   allow_failure: true # Non blocca pipeline se fallisce
 
