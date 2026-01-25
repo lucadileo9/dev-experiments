@@ -1,31 +1,37 @@
 # Progetto Cloud and Edge Computing - Django Newspaper
-## Setup Docker e Containerizzazione
 
-**Data**: 24 Gennaio 2026  
-**Obiettivo**: Containerizzare applicazione Django + MySQL per ambiente production-like
-
-***
-
-## 📋 Indice
-
-1. [Concetti Docker](#concetti-docker)
-1. [Contesto Progetto](#contesto-progetto)
-2. [Problemi Affrontati e Soluzioni](#problemi-affrontati-e-soluzioni)
-3. [File Creati/Modificati](#file-creatimodificati)
-4. [Workflow Finale](#workflow-finale)
-5. [Architettura Risultante](#architettura-risultante)
-6. [Lezioni Apprese](#lezioni-apprese)
-7. [Comandi Utili](#comandi-utili)
-
-***
-
-## Concetti Docker
-
-Docker è una piattaforma di containerizzazione che permette di "impacchettare" applicazioni con tutte le loro dipendenze in unità isolate chiamate **container**. Prima di entrare nei dettagli del nostro progetto, è fondamentale comprendere i concetti base che stanno alla radice di questa tecnologia.
+**Autore**: Luca Di Leo  
+**Data inizio**: 24 Gennaio 2026  
+**Repository**: Fork da `gitlab.com/frfaenza/cloudedgecomputing`
 
 ---
 
-### 1. Dal Dockerfile al Container: Il Workflow Fondamentale
+## 📋 Indice
+
+1. [Fondamenti Teorici](#parte-1-fondamenti-teorici)
+   - [1.1 Concetti Docker](#11-concetti-docker)
+   - [1.2 Concetti CI/CD](#12-concetti-cicd)
+2. [Contesto Progetto](#parte-2-contesto-progetto)
+3. [Fase 2: Containerizzazione Docker](#parte-3-fase-2---containerizzazione-docker)
+4. [Fase 3: CI/CD Pipeline](#parte-4-fase-3---cicd-pipeline)
+5. [Architettura Finale e Workflow](#parte-5-architettura-finale-e-workflow)
+6. [Comandi Utili](#parte-6-comandi-utili)
+
+---
+
+# PARTE 1: Fondamenti Teorici
+
+Prima di entrare nei dettagli pratici del progetto, è essenziale comprendere i concetti teorici che stanno alla base delle tecnologie utilizzate.
+
+---
+
+## 1.1 Concetti Docker
+
+Docker è una piattaforma di containerizzazione che permette di "impacchettare" applicazioni con tutte le loro dipendenze in unità isolate chiamate **container**.
+
+---
+
+### 1.1.1 Dal Dockerfile al Container: Il Workflow Fondamentale
 
 Il cuore di Docker ruota attorno a tre elementi principali: **Dockerfile**, **Immagine** e **Container**.
 
@@ -52,15 +58,13 @@ flowchart TD
     F --> I[🟢 Container 2<br/>Processo in esecuzione]
     G --> J[🟢 Container 3<br/>Processo in esecuzione]
     
-    
-    
     class B buildPhase
     class E,F,G runPhase
 ```
 
 ---
 
-### 2. La Struttura a Layer del Dockerfile
+### 1.1.2 La Struttura a Layer del Dockerfile
 
 Un aspetto fondamentale per capire l'efficienza di Docker è il sistema a **layer** (strati). Ogni istruzione nel Dockerfile crea un nuovo layer che viene impilato sopra il precedente, formando l'immagine finale come una "torta" a più strati.
 
@@ -72,8 +76,6 @@ La best practice è organizzare le istruzioni dalla più stabile alla più volat
 1. **Prima**: istruzioni che cambiano raramente (immagine base, installazione tool di sistema)
 2. **Poi**: dipendenze del progetto (requirements.txt)
 3. **Infine**: il codice sorgente (che cambia spesso durante lo sviluppo)
-
-Nel nostro progetto, copiamo `requirements.txt` e installiamo le dipendenze **prima** di copiare tutto il codice. Così, quando modifichiamo solo il codice Python, Docker riusa i layer delle dipendenze dalla cache e deve ricostruire solo l'ultimo layer. Il risultato? Rebuild in pochi secondi invece che minuti.
 
 ```mermaid
 flowchart TD
@@ -91,13 +93,12 @@ flowchart TD
     
     H[⚡ Modifica codice] -.->|Invalida cache da qui| E
     
-    
     I[📝 BEST PRACTICE:<br/>COPY requirements PRIMA del codice<br/>→ Rebuild veloce quando cambi solo codice]
 ```
 
 ---
 
-### 3. Docker Compose: Orchestrazione Multi-Container
+### 1.1.3 Docker Compose: Orchestrazione Multi-Container
 
 Nella realtà, le applicazioni moderne raramente girano in isolamento. Un'applicazione web tipica ha bisogno di un database, magari una cache Redis, un server di code, ecc. Gestire manualmente ogni container (crearli, collegarli, avviarli nell'ordine giusto) sarebbe un incubo.
 
@@ -108,8 +109,6 @@ Con un solo comando (`docker-compose up`), Docker Compose:
 2. Crea i **volumi** necessari per la persistenza dei dati
 3. Costruisce le immagini se necessario (esegue `docker build`)
 4. Avvia i container nell'**ordine corretto** rispettando le dipendenze
-
-Nel nostro progetto, abbiamo due servizi: `db` (MySQL) e `web` (Django). Il servizio `web` dipende da `db` attraverso la direttiva `depends_on`. Ma non basta che il container MySQL sia avviato: deve essere **pronto** ad accettare connessioni. Per questo usiamo un **healthcheck** che verifica periodicamente se MySQL risponde, e solo quando è "healthy" viene avviato Django.
 
 ```mermaid
 flowchart TD
@@ -134,12 +133,11 @@ flowchart TD
     F -.->|Connessione TCP/IP| E
     
     J[Browser: localhost:8000] --> F
-    
 ```
 
 ---
 
-### 4. Networking: Come Comunicano i Container
+### 1.1.4 Networking: Come Comunicano i Container
 
 Quando Docker Compose avvia i container, li collega tutti a una **rete virtuale privata**. Questa rete è isolata dal mondo esterno e permette ai container di comunicare tra loro in modo sicuro.
 
@@ -147,9 +145,7 @@ La magia sta nel **Docker DNS**: all'interno della rete Docker, ogni container p
 
 Perché è importante? Gli IP dei container sono **dinamici**: cambiano ogni volta che ricrei i container. Se hardcodassimo l'IP nel codice, smetterebbe di funzionare al prossimo restart. Usando i nomi di servizio, il codice rimane stabile e Docker si occupa della risoluzione.
 
-Per il mondo esterno (il tuo browser), i container non sono direttamente accessibili. Il **port mapping** (`-p 8000:8000`) crea un "ponte" che collega una porta del tuo computer (localhost:8000) a una porta del container. Così puoi accedere all'applicazione dal browser.
-
-Un punto critico che abbiamo affrontato: in Docker, i container comunicano **sempre via rete TCP/IP**, mai via socket Unix. Questo ha richiesto una modifica alla configurazione Django per forzare la connessione di rete invece del socket locale.
+Per il mondo esterno (il tuo browser), i container non sono direttamente accessibili. Il **port mapping** (`-p 8000:8000`) crea un "ponte" che collega una porta del tuo computer (localhost:8000) a una porta del container.
 
 ```mermaid
 graph LR
@@ -158,8 +154,8 @@ graph LR
     end
     
     subgraph DockerNet["🌐 Docker Network: cloudedgecomputing_default"]
-        Web["🟢 Container: web<br/>Nome: db<br/>IP: 172.18.0.3<br/>Porta: 8000"]
-        DB["🔵 Container: db<br/>Nome: db<br/>IP: 172.18.0.2<br/>Porta: 3306"]
+        Web["🟢 Container: web<br/>IP: 172.18.0.3<br/>Porta: 8000"]
+        DB["🔵 Container: db<br/>IP: 172.18.0.2<br/>Porta: 3306"]
         DNS["🔍 Docker DNS<br/>db → 172.18.0.2<br/>web → 172.18.0.3"]
     end
     
@@ -170,23 +166,20 @@ graph LR
     
     Web -.->|Connessione TCP/IP| DB
     
-    
     Note1["📝 Container NON usano socket Unix<br/>Solo comunicazione TCP/IP via rete"]
 ```
 
 ---
 
-### 5. Volumi: Persistenza dei Dati
+### 1.1.5 Volumi: Persistenza dei Dati
 
 I container sono **effimeri** per natura: quando un container viene distrutto, tutto ciò che contiene (inclusi i dati) viene perso. Per un database questo sarebbe disastroso! I **volumi** risolvono questo problema permettendo ai dati di sopravvivere alla distruzione del container.
 
 Esistono due tipi principali di volumi:
 
-**Bind Mount**: collega una directory del tuo computer host direttamente dentro il container. Qualsiasi modifica fatta da una parte è immediatamente visibile dall'altra. Nel nostro progetto, usiamo un bind mount (`- .:/app`) per il codice Django: quando modifichi un file Python sul tuo Windows, la modifica è istantaneamente disponibile dentro il container, senza bisogno di rebuild. Perfetto per lo sviluppo!
+**Bind Mount**: collega una directory del tuo computer host direttamente dentro il container. Qualsiasi modifica fatta da una parte è immediatamente visibile dall'altra. Perfetto per lo sviluppo!
 
-**Named Volume**: è uno spazio di storage gestito interamente da Docker, "nascosto" nel filesystem dell'host. Il container lo vede come una directory normale, ma i dati sono conservati in modo persistente da Docker. Usiamo un named volume (`mysql_data`) per il database MySQL: anche se distruggi e ricrei il container MySQL, i dati del database rimangono intatti.
-
-Attenzione al comando `docker-compose down -v`: il flag `-v` elimina anche i volumi! Usalo solo quando vuoi davvero cancellare tutti i dati e ripartire da zero.
+**Named Volume**: è uno spazio di storage gestito interamente da Docker, "nascosto" nel filesystem dell'host. I dati sono conservati in modo persistente da Docker anche se il container viene distrutto.
 
 ```mermaid
 flowchart TD
@@ -217,19 +210,13 @@ flowchart TD
 
 ---
 
-### 6. Variabili d'Ambiente: Configurazione Esterna
+### 1.1.6 Variabili d'Ambiente: Configurazione Esterna
 
-Una delle best practice fondamentali nello sviluppo software è la **separazione tra codice e configurazione**. Non vuoi hardcodare password, hostname o altre impostazioni nel codice sorgente: sarebbe un rischio di sicurezza e renderebbe difficile deployare la stessa applicazione in ambienti diversi (development, staging, production).
+Una delle best practice fondamentali nello sviluppo software è la **separazione tra codice e configurazione**. Non vuoi hardcodare password, hostname o altre impostazioni nel codice sorgente.
 
-Docker risolve elegantemente questo problema attraverso le **variabili d'ambiente**. Nel `docker-compose.yml`, sotto la sezione `environment`, definiamo coppie chiave-valore che vengono "iniettate" nel container al momento dell'avvio.
+Docker risolve questo problema attraverso le **variabili d'ambiente**. Nel `docker-compose.yml`, sotto la sezione `environment`, definiamo coppie chiave-valore che vengono "iniettate" nel container al momento dell'avvio.
 
-Il flusso è il seguente:
-1. Docker Compose legge la configurazione dal file YAML
-2. Quando crea il container, imposta le variabili nel sistema operativo interno
-3. L'applicazione Python usa `os.environ.get('NOME_VARIABILE')` per leggere questi valori
-4. Django configura la connessione al database usando i valori letti
-
-Il punto cruciale è che **docker-compose non modifica mai il codice Python**. Il codice rimane generico (`os.environ.get('MYSQL_HOST')`), ed è l'ambiente di esecuzione che fornisce i valori concreti. Puoi deployare lo stesso codice ovunque, cambiando solo le variabili d'ambiente.
+Il punto cruciale è che **docker-compose non modifica mai il codice Python**. Il codice rimane generico (`os.environ.get('MYSQL_HOST')`), ed è l'ambiente di esecuzione che fornisce i valori concreti.
 
 ```mermaid
 sequenceDiagram
@@ -257,7 +244,7 @@ sequenceDiagram
     Django->>DNS: Risolvi nome: db
     DNS-->>Django: Ritorna IP: 172.18.0.2
     
-    Django->>MySQL: Connessione TCP/IP a 172.18.0.2:3306<br/>Credenziali: django/django_password
+    Django->>MySQL: Connessione TCP/IP a 172.18.0.2:3306
     MySQL-->>Django: ✅ Connessione stabilita
     
     Note over DC,MySQL: 🔑 docker-compose NON modifica codice Python<br/>SOLO passa variabili all'ambiente
@@ -265,17 +252,15 @@ sequenceDiagram
 
 ---
 
-### 7. I Tre Comandi Fondamentali: build, run, compose up
+### 1.1.7 I Tre Comandi Fondamentali: build, run, compose up
 
 Per lavorare con Docker, devi padroneggiare tre comandi principali, ognuno con uno scopo diverso:
 
-**`docker build`** serve esclusivamente a creare immagini. Prende un Dockerfile come input, esegue tutte le istruzioni, e produce un'immagine salvata localmente. Non avvia nessun container: è pura "compilazione".
+**`docker build`** serve esclusivamente a creare immagini. Non avvia nessun container: è pura "compilazione".
 
-**`docker run`** prende un'immagine esistente e crea un singolo container da essa. È utile per test rapidi o per eseguire container standalone, ma ha dei limiti: devi gestire manualmente network, volumi, e se hai più container devi avviarli uno per uno coordinandoti da solo.
+**`docker run`** prende un'immagine esistente e crea un singolo container da essa. Utile per test rapidi ma richiede gestione manuale di network e volumi.
 
-**`docker-compose up`** è il comando più potente per applicazioni reali. Legge il file `docker-compose.yml` e automatizza tutto: costruisce le immagini se necessario, crea network e volumi, avvia tutti i container nell'ordine corretto rispettando le dipendenze. Con un solo comando hai l'intero stack funzionante.
-
-Nel nostro workflow quotidiano, usiamo quasi sempre `docker-compose up` per avviare l'ambiente di sviluppo, e `docker-compose down` per fermarlo. Gli altri comandi servono per situazioni specifiche (debug, test isolati, ecc.).
+**`docker-compose up`** è il comando più potente per applicazioni reali. Automatizza tutto: costruisce le immagini, crea network e volumi, avvia tutti i container nell'ordine corretto.
 
 ```mermaid
 flowchart TD
@@ -315,81 +300,108 @@ flowchart TD
 
 ---
 
-## Contesto Progetto
+## 1.2 Concetti CI/CD
 
-**Repository**: Fork da `gitlab.com/frfaenza/cloudedgecomputing` (branch Django Newspaper)
+**CI/CD** (Continuous Integration / Continuous Delivery) è una pratica fondamentale nello sviluppo software moderno che automatizza il processo di verifica, test e deployment del codice.
 
-**Stack Tecnologico**:
-- Django 4.0
-- MySQL 8.0 (production)
-- SQLite (development locale)
-- uWSGI (application server)
-- Docker + docker-compose
+---
 
-**Obiettivo Fase 2**: Creare ambiente containerizzato riproducibile che simula production con MySQL.
+### 1.2.1 Continuous Integration (CI)
 
-***
+**Continuous Integration** significa che ogni volta che un sviluppatore fa push del codice, viene automaticamente eseguita una serie di controlli: il codice viene compilato, i test vengono eseguiti, la qualità viene verificata. Se qualcosa fallisce, lo sviluppatore viene notificato immediatamente, permettendo di correggere gli errori quando sono ancora "freschi" e facili da risolvere.
 
-## Problemi Affrontati e Soluzioni
+---
 
-### 🔴 Problema 1: mysqlclient Non Compila su Windows
+### 1.2.2 Continuous Delivery (CD)
 
-**Sintomo**:
-```
-fatal error C1083: Non è possibile aprire il file inclusione: 'mysql.h'
-```
+**Continuous Delivery** estende questo concetto: dopo che il codice passa tutti i controlli CI, viene automaticamente preparato (e opzionalmente deployato) in un ambiente di staging o production. L'obiettivo è avere sempre codice "pronto per il rilascio".
 
-**Causa**: 
-- `mysqlclient` è libreria Python con componenti C che richiedono compilazione
-- Su Windows serve Visual Studio Build Tools + MySQL header files (`mysql.h`)
-- Header MySQL mancanti sul sistema
+---
 
-**Soluzione Temporanea**:
-```txt
-# requirements.txt per development locale (Windows)
-# mysqlclient==2.1.1  ← commentato
-```
+### 1.2.3 GitLab CI/CD
 
-Questo permette di lavorare in locale con SQLite senza blocchi.
+Nel nostro progetto utilizziamo **GitLab CI/CD**, che offre:
+- Runner gratuiti nel cloud per eseguire le pipeline
+- Integrazione nativa con il repository Git
+- Configurazione tramite un semplice file YAML (`.gitlab-ci.yml`)
+- Badge, report e artifacts integrati nell'interfaccia
 
-**Soluzione Definitiva** (vedi Problema 5): Usare Docker con Linux dove mysqlclient compila senza problemi.
-
-***
-
-### 🔴 Problema 2: Configurazione uWSGI Mancante
-
-**Sintomo**: README menziona `uwsgi.ini.example` ma file non presente nel repository.
-
-**Soluzione**: Creato `uwsgi.ini` manualmente:
-
-```ini
-[uwsgi]
-chdir = /app
-module = django_project.wsgi:application
-master = true
-processes = 4
-threads = 2
-http = 0.0.0.0:8000
-logto = /app/logs/uwsgi.log
-log-maxsize = 50000000
-py-autoreload = 1
-pidfile = /app/uwsgi.pid
-vacuum = true
-die-on-term = true
+```mermaid
+flowchart LR
+    subgraph CI["🔄 Continuous Integration"]
+        A[👨‍💻 git push] --> B[🔨 Build Check]
+        B --> C[🧪 Test Automatici]
+        C --> D[📏 Code Quality]
+        D --> E[🔒 Security Scan]
+    end
+    
+    E --> F{✅ Tutti<br/>i check<br/>passano?}
+    
+    F -->|❌ No| G[📧 Notifica Errore<br/>Pipeline Rossa]
+    F -->|✅ Sì| H[🎉 Pipeline Verde<br/>Codice Verificato]
+    
+    subgraph CD["🚀 Continuous Delivery"]
+        H --> I[📦 Build Artifact]
+        I --> J[🌍 Deploy Staging]
+        J --> K[🏭 Deploy Production]
+    end
+    
 ```
 
-**Configurazione chiave**:
-- `chdir = /app`: Directory lavoro (corrisponde a WORKDIR nel Dockerfile)
-- `processes = 4`: 4 worker per gestire richieste parallele
-- `http = 0.0.0.0:8000`: Ascolta su tutte le interfacce, porta 8000
+---
 
-***
+# PARTE 2: Contesto Progetto
 
-### 🔴 Problema 3: Containerizzazione Django
+## Obiettivo Generale
 
-**Obiettivo**: Creare immagine Docker con Django + dipendenze.
+Creare un ambiente containerizzato riproducibile per un'applicazione Django che simula un ambiente production con MySQL, implementando pipeline CI/CD per garantire qualità del codice.
 
-**Soluzione**: Creato `Dockerfile`:
+---
+
+## Stack Tecnologico
+
+| Componente | Tecnologia | Versione |
+|------------|------------|----------|
+| Framework Web | Django | 4.0 |
+| Database Production | MySQL | 8.0 |
+| Database Development | SQLite | Built-in |
+| Application Server | uWSGI | 2.0.21 |
+| Containerizzazione | Docker + Compose | Latest |
+| CI/CD | GitLab CI | Cloud Runner |
+
+---
+
+## Panoramica Fasi
+
+```mermaid
+flowchart LR
+    F2[📦 Fase 2<br/>Containerizzazione<br/>Docker + MySQL] --> F3[🔄 Fase 3<br/>CI/CD Pipeline<br/>Test + Quality]
+    F3 --> F4[🚀 Fase 4<br/>CD Deployment<br/>Coming Soon]
+```
+
+| Fase | Obiettivo | Stato |
+|------|-----------|-------|
+| Fase 2 | Containerizzazione Django + MySQL | ✅ Completata |
+| Fase 3 | Pipeline CI/CD con GitLab | ✅ Completata |
+| Fase 4 | Deployment automatico | 🔜 Prossima |
+
+---
+
+# PARTE 3: Fase 2 - Containerizzazione Docker
+
+## Obiettivo
+
+Containerizzare l'applicazione Django Newspaper con MySQL, creando un ambiente di sviluppo riproducibile che simula la production.
+
+---
+
+## Cosa Abbiamo Fatto
+
+### File Creati
+
+#### 1. Dockerfile
+
+Ricetta per costruire l'immagine Django:
 
 ```dockerfile
 FROM python:3.10-slim
@@ -422,17 +434,14 @@ CMD ["uwsgi", "--ini", "uwsgi.ini"]
 
 **Punti chiave**:
 - Immagine base leggera: `python:3.10-slim`
-- Installa tool compilazione: `gcc`, `g++`, `python3-dev`
-- Layer caching: `requirements.txt` copiato prima del codice (ottimizzazione)
-- `EXPOSE 8000`: Documentazione, non apre porta (lo fa docker-compose)
+- Layer caching: `requirements.txt` copiato prima del codice
+- `EXPOSE 8000`: Documentazione della porta
 
-***
+---
 
-### 🔴 Problema 4: Orchestrazione Django + MySQL
+#### 2. docker-compose.yml
 
-**Obiettivo**: Far comunicare container Django e MySQL.
-
-**Soluzione**: Creato `docker-compose.yml`:
+Orchestrazione Django + MySQL:
 
 ```yaml
 version: '3.8'
@@ -485,19 +494,39 @@ volumes:
 **Elementi critici**:
 - `healthcheck` su MySQL: Assicura che db sia pronto prima di avviare web
 - `depends_on` con `condition: service_healthy`: Web aspetta db
-- `volumes: - .:/app`: Bind mount per development (modifiche immediate)
-- `volumes: mysql_data`: Named volume per persistenza dati
-- `MYSQL_HOST=db`: Nome servizio, Docker risolve in IP automaticamente
+- `volumes: - .:/app`: Bind mount per development
+- `mysql_data`: Named volume per persistenza dati
 
-***
+---
 
-### 🔴 Problema 5: mysqlclient in Container vs Locale
+#### 3. uwsgi.ini
 
-**Situazione**: mysqlclient non compila su Windows ma serve per MySQL.
+Configurazione application server:
 
-**Soluzione**: Strategia duale basata su ambiente.
+```ini
+[uwsgi]
+chdir = /app
+module = django_project.wsgi:application
+master = true
+processes = 4
+threads = 2
+http = 0.0.0.0:8000
+logto = /app/logs/uwsgi.log
+log-maxsize = 50000000
+py-autoreload = 1
+pidfile = /app/uwsgi.pid
+vacuum = true
+die-on-term = true
+```
 
-**requirements.txt** (committato su Git, versione completa):
+---
+
+### File Modificati
+
+#### 1. requirements.txt
+
+Aggiunte dipendenze mancanti:
+
 ```txt
 asgiref==3.4.1
 crispy-bootstrap5==0.6
@@ -508,37 +537,18 @@ django-cache-url==3.2.3
 django-crispy-forms==1.13.0
 environs==9.3.5
 marshmallow==3.14.1
-mysqlclient==2.1.1  ← Attivo per Docker
+mysqlclient==2.1.1    # ← Per Docker/MySQL
 python-dotenv==0.19.2
 sqlparse==0.4.2
 whitenoise==5.3.0
-uWSGI==2.0.21      ← Aggiunto (mancava!)
+uWSGI==2.0.21         # ← Aggiunto (mancava!)
 ```
 
-**Workflow risultante**:
+---
 
-| Ambiente | Database | mysqlclient | Come Lavori |
-|----------|----------|-------------|-------------|
-| **Locale Windows** | SQLite | ❌ Commentato in requirements locale | `python manage.py runserver` |
-| **Docker** | MySQL | ✅ Compila in Linux | `docker-compose up` |
+#### 2. django_project/production_settings.py
 
-**Vantaggio**: 
-- Development veloce su Windows con SQLite
-- Test production-like con Docker + MySQL quando necessario
-- Stesso codice, configurazione diversa
-
-***
-
-### 🔴 Problema 6: Django Usa Socket invece di TCP/IP
-
-**Sintomo**:
-```
-django.db.utils.OperationalError: (2002, "Can't connect to local server through socket '/run/mysqld/mysqld.sock' (2)")
-```
-
-**Causa**: Django cercava connessione via socket Unix (file system locale) invece che rete TCP/IP. In Docker, container comunicano **solo** via rete.
-
-**Soluzione**: Modificato `django_project/production_settings.py`:
+Configurazione per leggere da variabili d'ambiente:
 
 ```python
 import os
@@ -562,15 +572,53 @@ DEBUG = False
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', '*']
 ```
 
-**Chiave della soluzione**:
-- `'HOST': os.environ.get('MYSQL_HOST', 'db')` → Forza connessione TCP/IP
-- docker-compose passa `MYSQL_HOST=db` come variabile d'ambiente
-- Django usa nome servizio `db`, Docker risolve in IP container MySQL
-- Comunicazione via rete invece che socket
+---
 
-***
+## Problemi Riscontrati e Soluzioni
 
-### 🔴 Problema 7: uWSGI Mancante in requirements.txt
+### 🔴 Problema 1: mysqlclient Non Compila su Windows
+
+**Sintomo**:
+```
+fatal error C1083: Non è possibile aprire il file inclusione: 'mysql.h'
+```
+
+**Causa**: `mysqlclient` è una libreria Python con componenti C che richiedono compilazione. Su Windows serve Visual Studio Build Tools + MySQL header files.
+
+**Soluzione**: Strategia duale basata su ambiente:
+
+| Ambiente | Database | mysqlclient | Come Lavori |
+|----------|----------|-------------|-------------|
+| **Locale Windows** | SQLite | Commentato | `python manage.py runserver` |
+| **Docker** | MySQL | Compila in Linux | `docker-compose up` |
+
+---
+
+### 🔴 Problema 2: Configurazione uWSGI Mancante
+
+**Sintomo**: README menziona `uwsgi.ini.example` ma file non presente nel repository.
+
+**Soluzione**: Creato `uwsgi.ini` manualmente con configurazione production-ready (vedi sopra).
+
+---
+
+### 🔴 Problema 3: Django Usa Socket invece di TCP/IP
+
+**Sintomo**:
+```
+django.db.utils.OperationalError: (2002, "Can't connect to local server through socket '/run/mysqld/mysqld.sock' (2)")
+```
+
+**Causa**: Django cercava connessione via socket Unix invece che rete TCP/IP. In Docker, container comunicano **solo** via rete.
+
+**Soluzione**: Specificare `HOST` esplicito in `production_settings.py`:
+```python
+'HOST': os.environ.get('MYSQL_HOST', 'db'),  # Forza TCP/IP
+```
+
+---
+
+### 🔴 Problema 4: uWSGI Mancante in requirements.txt
 
 **Sintomo**:
 ```
@@ -578,42 +626,285 @@ sh: 2: uwsgi: not found
 newspaper_web exited with code 127
 ```
 
-**Causa**: `uWSGI` non era elencato in `requirements.txt`, quindi non installato nel container.
+**Causa**: `uWSGI` non era elencato in `requirements.txt`.
 
-**Soluzione**: Aggiunto `uWSGI==2.0.21` a requirements.txt.
-
-**Nota**: Richiede rebuild del container:
+**Soluzione**: Aggiunto `uWSGI==2.0.21` e rebuild:
 ```bash
 docker-compose build --no-cache
 docker-compose up
 ```
 
-***
+---
 
-## File Creati/Modificati
+## Risultato Fase 2
 
-### ✅ File Nuovi
+✅ **Ambiente Docker funzionante** con:
+- Container Django + uWSGI
+- Container MySQL 8.0 con healthcheck
+- Rete Docker per comunicazione
+- Volumi per persistenza dati e sync codice
 
-1. **`Dockerfile`**: Ricetta per costruire immagine Django
-2. **`docker-compose.yml`**: Orchestrazione Django + MySQL
-3. **`uwsgi.ini`**: Configurazione uWSGI application server
+✅ **Workflow duale**:
+- Development veloce su Windows con SQLite
+- Test production-like con Docker + MySQL
 
-### ✏️ File Modificati
+---
 
-1. **`requirements.txt`**: 
-   - Aggiunto `uWSGI==2.0.21`
-   - Mantenuto `mysqlclient==2.1.1` (per Docker)
+# PARTE 4: Fase 3 - CI/CD Pipeline
 
-2. **`django_project/production_settings.py`**:
-   - Modificato `DATABASES` per leggere da variabili d'ambiente
-   - Aggiunto `'HOST'` esplicito per forzare TCP/IP
-   - Configurato `SECRET_KEY` da variabile d'ambiente
+## Obiettivo
 
-***
+Implementare pipeline CI automatizzata con GitLab CI per garantire qualità codice, test automatici e security scanning.
 
-## Workflow Finale
+---
 
-### Development Locale (Windows + SQLite)
+## Cosa Abbiamo Fatto
+
+### Struttura Pipeline (`.gitlab-ci.yml`)
+
+```yaml
+stages:
+  - build      # Verifica che il codice sia valido
+  - test       # Esegue test e controlli qualità
+  - security   # Scansione vulnerabilità
+```
+
+```mermaid
+flowchart TD
+    subgraph Stage1["📦 STAGE: Build"]
+        B1[build_check<br/>~20s]
+    end
+    
+    subgraph Stage2["🧪 STAGE: Test"]
+        T1[test_django<br/>~30s]
+        T2[format_check<br/>~10s]
+        T3[lint_flake8<br/>~5s]
+    end
+    
+    subgraph Stage3["🔒 STAGE: Security"]
+        S1[security_dependencies<br/>~15s]
+    end
+    
+    Stage1 --> Stage2
+    Stage2 --> Stage3
+    
+    T1 -.->|Coverage 93%| R1[📊 Report]
+    S1 -.->|CVE Check| R2[📋 Safety Report]
+```
+
+---
+
+### Job Implementati
+
+#### Build Check
+```yaml
+build_check:
+  stage: build
+  script:
+    - python -m py_compile manage.py
+    - python -m compileall .
+```
+
+#### Test Django + Coverage
+```yaml
+test_django:
+  stage: test
+  script:
+    - pip install coverage
+    - coverage run --source='.' manage.py test
+    - coverage report
+    - coverage xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+```
+
+#### Format Check (Black)
+```yaml
+format_check:
+  stage: test
+  script:
+    - pip install black
+    - black --check --line-length=120 .
+```
+
+#### Linting (Flake8)
+```yaml
+lint_flake8:
+  stage: test
+  script:
+    - pip install flake8
+    - flake8 --max-line-length=120 --exclude=migrations,venv
+  allow_failure: true  # Warning only
+```
+
+#### Security Scan (Safety)
+```yaml
+security_dependencies:
+  stage: security
+  script:
+    - pip install safety
+    - safety check --file requirements.txt --full-report
+  allow_failure: true  # Warning only
+```
+
+---
+
+### Pre-commit Hooks
+
+Per garantire codice formattato **prima** del push:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        args: ['--line-length=120']
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+```
+
+```mermaid
+sequenceDiagram
+    participant Dev as 👨‍💻 Sviluppatore
+    participant Git as 🗂️ Git
+    participant Hook as 🪝 Pre-commit
+    participant Black as ⬛ Black
+    
+    Dev->>Git: git commit -m "feature"
+    Git->>Hook: Trigger pre-commit
+    Hook->>Black: Formatta file staged
+    
+    alt File modificati da Black
+        Black-->>Hook: File formattati ✏️
+        Hook-->>Git: ❌ Commit bloccato
+        Git-->>Dev: "Files were modified by hooks"
+        Note over Dev: Ri-esegue git add + commit
+    else File già OK
+        Black-->>Hook: Nessuna modifica
+        Hook-->>Git: ✅ Procedi
+        Git-->>Dev: Commit completato
+    end
+```
+
+Setup:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+---
+
+## Problemi Riscontrati e Soluzioni
+
+### 🔴 Problema 1: MySQL in CI Troppo Complesso
+
+**Causa**: Usare MySQL richiederebbe un container separato, aumentando complessità e tempo.
+
+**Soluzione**: SQLite in-memory per test CI:
+```python
+# settings.py
+import sys
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+```
+
+---
+
+### 🔴 Problema 2: Black Fallisce su File Non Formattati
+
+**Causa**: ~30 file nel codebase non erano formattati secondo Black.
+
+**Soluzione**: Pre-commit hooks che formattano automaticamente prima del commit. La CI verifica ma trova sempre codice già formattato.
+
+---
+
+### 🔴 Problema 3: Flake8 Troppi Warning
+
+**Causa**: ~20-30 warning per import inutilizzati, variabili non usate, ecc.
+
+**Decisione**: `allow_failure: true` - Pipeline verde per progredire, warning visibili per future ottimizzazioni.
+
+---
+
+### 🔴 Problema 4: Type Checking (Mypy) Non Praticabile
+
+**Causa**: Codebase senza type hints, richiederebbe tipizzare ~50+ funzioni.
+
+**Decisione**: SCARTATO - Effort/ROI non giustificato per progetto didattico. Type hints aggiunti gradualmente in codice nuovo.
+
+---
+
+## Risultato Fase 3
+
+✅ **Pipeline CI funzionante** con:
+- Build verification
+- Test automatici + coverage 93%
+- Format check (Black)
+- Linting (Flake8) - warning only
+- Security scanning (Safety) - warning only
+
+✅ **Developer Experience migliorata**:
+- Pre-commit formatta codice automaticamente
+- Badge README mostrano stato real-time
+- Report scaricabili dagli artifacts
+
+| Stage | Job | Durata | Comportamento |
+|-------|-----|--------|---------------|
+| Build | `build_check` | ~20s | ❌ Blocca |
+| Test | `test_django` | ~30s | ❌ Blocca |
+| Test | `format_check` | ~10s | ❌ Blocca |
+| Test | `lint_flake8` | ~5s | ⚠️ Warning |
+| Security | `security_dependencies` | ~15s | ⚠️ Warning |
+
+**Tempo totale pipeline**: ~1m 20s
+
+---
+
+# PARTE 5: Architettura Finale e Workflow
+
+## Architettura Sistema
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  WINDOWS HOST (Docker Desktop)                                   │
+│                                                                   │
+│  Browser: localhost:8000                                          │
+│         ↓                                                         │
+│  ┌─────────────────────────────────────────────────────────────┐ │
+│  │  Docker Network: cloudedgecomputing_default                 │ │
+│  │                                                              │ │
+│  │  ┌────────────────────┐     ┌────────────────────┐         │ │
+│  │  │ Container: db      │     │ Container: web     │         │ │
+│  │  │ - MySQL 8.0        │◄────│ - Django 4.0       │         │ │
+│  │  │ - Porta: 3306      │     │ - uWSGI            │         │ │
+│  │  │ - Volume:          │     │ - Porta: 8000      │         │ │
+│  │  │   mysql_data       │     │ - Bind mount: .    │         │ │
+│  │  └────────────────────┘     └────────────────────┘         │ │
+│  │         ↑                           ↑                       │ │
+│  │    Dati persistenti            Codice live                  │ │
+│  └─────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Workflow Development
+
+### Opzione A: Development Locale (Windows + SQLite)
 
 ```bash
 # Setup iniziale
@@ -624,15 +915,13 @@ pip install -r requirements.txt  # Con mysqlclient commentato
 # Workflow quotidiano
 python manage.py runserver
 # Browser: http://localhost:8000
-
-# Modifiche immediate, SQLite come database
 ```
 
 **Quando usare**: Sviluppo veloce, modifiche piccole, test immediati.
 
-***
+---
 
-### Docker Production-like (Linux + MySQL)
+### Opzione B: Docker Production-like (Linux + MySQL)
 
 ```bash
 # Prima volta: build immagini
@@ -651,99 +940,44 @@ docker-compose down
 docker-compose down -v
 ```
 
-**Quando usare**: Test con MySQL, verifica migrazioni, simulare production, debugging configurazione.
+**Quando usare**: Test con MySQL, verifica migrazioni, simulare production.
 
-***
+---
 
-## Architettura Risultante
+## Workflow CI/CD
 
-```
-┌─────────────────────────────────────────────────────┐
-│  WINDOWS HOST (Docker Desktop)                      │
-│                                                      │
-│  Browser: localhost:8000                             │
-│         ↓                                            │
-│  ┌────────────────────────────────────────────────┐ │
-│  │  Docker Network: cloudedgecomputing_default    │ │
-│  │                                                 │ │
-│  │  ┌──────────────────┐   ┌──────────────────┐  │ │
-│  │  │ Container: db    │   │ Container: web   │  │ │
-│  │  │ - MySQL 8.0      │◄──│ - Django 4.0     │  │ │
-│  │  │ - Porta: 3306    │   │ - uWSGI          │  │ │
-│  │  │ - Volume:        │   │ - Porta: 8000    │  │ │
-│  │  │   mysql_data     │   │ - Bind mount: .  │  │ │
-│  │  └──────────────────┘   └──────────────────┘  │ │
-│  │         ↑                        ↑             │ │
-│  │    Dati persistenti         Codice live       │ │
-│  └────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A[👨‍💻 Sviluppatore] -->|git commit| B[🪝 Pre-commit Hook]
+    B -->|Black formatta| C[📤 git push]
+    C -->|Trigger| D[🚀 GitLab Pipeline]
+    
+    D --> E[📦 Build Check]
+    E --> F[🧪 Test + Coverage]
+    F --> G[⬛ Format Check]
+    G --> H[📏 Lint]
+    H --> I[🔒 Security Scan]
+    
+    I -->|✅ Pass| J[🎉 Pipeline Verde]
+    I -->|❌ Fail| K[📧 Notifica Errore]
+    
+    J --> L[📊 Artifacts<br/>Coverage Report<br/>Safety Report]
 ```
 
-**Comunicazione**:
-- Web → db via nome servizio (`db:3306`)
-- Docker DNS risolve `db` → IP container MySQL
-- Browser → Web via port mapping (`localhost:8000` → `web:8000`)
+---
 
-***
+## Prossimi Passi (Fase 4: CD)
 
-## Lezioni Apprese
+- [ ] Setup GitLab Container Registry
+- [ ] Automatizzare build immagine Docker
+- [ ] Deploy automatico su ambiente staging
+- [ ] (Opzionale) Deploy production con approval manuale
 
-### 💡 Concetti Docker Chiave
+---
 
-1. **Dockerfile vs docker-compose**:
-   - Dockerfile = ricetta per UN container
-   - docker-compose = orchestra MULTIPLI container
+# PARTE 6: Comandi Utili
 
-2. **Immagine vs Container**:
-   - Immagine = file statico (come `.exe`)
-   - Container = processo in esecuzione (programma che gira)
-
-3. **Build vs Run**:
-   - `docker build` = crea immagine (compila)
-   - `docker run` / `docker-compose up` = esegue container (lancia programma)
-
-4. **Volumi**:
-   - **Bind mount** (`- .:/app`) = sincronizzazione codice live (development)
-   - **Named volume** (`mysql_data`) = persistenza dati (database)
-
-5. **Networking Docker**:
-   - Container comunicano via rete privata
-   - Si riferiscono per nome (Docker DNS)
-   - Non usano socket Unix
-
-6. **Variabili d'Ambiente**:
-   - docker-compose le **passa** al container
-   - Python le **legge** con `os.environ.get()`
-   - docker-compose **NON modifica** il codice
-
-***
-
-### 🎯 Best Practices Applicate
-
-✅ **Layer caching**: `requirements.txt` copiato prima del codice nel Dockerfile  
-✅ **Healthcheck**: MySQL deve essere ready prima di Django  
-✅ **depends_on**: Ordine avvio gestito automaticamente  
-✅ **Volumi persistenti**: Dati database sopravvivono a restart  
-✅ **Bind mount development**: Modifiche codice immediate senza rebuild  
-✅ **Variabili d'ambiente**: Configurazione separata da codice  
-✅ **Named volumes dichiarati**: Evita volume anonimi
-
-***
-
-### ⚠️ Errori Comuni Evitati
-
-❌ Provare a compilare mysqlclient nativamente su Windows  
-❌ Avviare Django prima che MySQL sia pronto (risolto con healthcheck)  
-❌ Usare socket Unix invece di TCP/IP in Docker  
-❌ Dimenticare dipendenze (uWSGI)  
-❌ Non persistere dati database (risolto con named volume)  
-❌ Hardcodare configurazione nel codice invece di usare variabili d'ambiente
-
-***
-
-## Comandi Utili
-
-### Gestione Container
+## Docker & Docker Compose
 
 ```bash
 # Build immagini
@@ -772,7 +1006,9 @@ docker-compose logs web
 docker-compose logs -f web  # Follow mode
 ```
 
-### Debug e Ispezione
+---
+
+## Debug e Ispezione
 
 ```bash
 # Lista container attivi
@@ -794,7 +1030,9 @@ docker network ls
 docker network inspect cloudedgecomputing_default
 ```
 
-### Django in Container
+---
+
+## Django in Container
 
 ```bash
 # Migrazioni
@@ -811,7 +1049,25 @@ docker-compose exec web python manage.py shell
 docker-compose exec web python manage.py test accounts articles pages
 ```
 
-### Pulizia Sistema
+---
+
+## Git & Pre-commit
+
+```bash
+# Setup pre-commit
+pip install pre-commit
+pre-commit install
+
+# Eseguire manualmente su tutti i file
+pre-commit run --all-files
+
+# Skip pre-commit per commit urgente
+git commit --no-verify -m "hotfix"
+```
+
+---
+
+## Pulizia Sistema
 
 ```bash
 # Rimuovi container fermi
@@ -827,19 +1083,6 @@ docker volume prune
 docker system prune -a --volumes
 ```
 
-***
+---
 
-## Prossimi Passi (Fase 3)
-
-- [ ] Creare `.gitlab-ci.yml` per pipeline CI/CD
-- [ ] Configurare test automatici su push
-- [ ] Setup GitLab Runner per deployment
-- [ ] Automatizzare deploy in ambiente production simulato
-
-***
-
-
-**Note**: Questo documento verrà aggiornato con le fasi successive (CI/CD, deployment, monitoring).
-
-***
-
+**Fine documentazione** - Ultimo aggiornamento: 25 Gennaio 2026
