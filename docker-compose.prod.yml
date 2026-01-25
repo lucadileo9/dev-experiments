@@ -23,7 +23,7 @@ services:
 
   web:
     # USA immagine da registry (NO build)
-    image: ${IMAGE_NAME:-newspaper-web:latest}
+    image: ${DEPLOY_IMAGE_NAME:-newspaper-web:latest}
     
     container_name: newspaper_web_prod
     command: >
