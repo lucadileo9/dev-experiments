@@ -5,6 +5,7 @@
 stages:
   - build  # fase di costruzione del progetto
   - test # esecuzione di tutti i test
+  - security
 # Qui definiamo l'ordine delle fasi, ossia prima di eseguire i job di test, vengono eseguiti i job di build.
 # Ovviamente i job di test vegnono eseguiti solo se i job di build sono andati a buon fine.
 
