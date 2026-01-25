@@ -16,8 +16,9 @@
 2. [Contesto Progetto](#parte-2-contesto-progetto)
 3. [Fase 2: Containerizzazione Docker](#parte-3-fase-2---containerizzazione-docker)
 4. [Fase 3: CI/CD Pipeline](#parte-4-fase-3---cicd-pipeline)
-5. [Architettura Finale e Workflow](#parte-5-architettura-finale-e-workflow)
-6. [Comandi Utili](#parte-6-comandi-utili)
+5. [Fase 4: Continuous Deployment](#parte-4-fase-4---continuous-deployment)
+6. [Architettura Finale e Workflow](#parte-5-architettura-finale-e-workflow)
+7. [Comandi Utili](#parte-6-comandi-utili)
 
 ---
 
@@ -302,6 +303,95 @@ flowchart TD
 
 ---
 
+### 1.1.8 Registry e Tag
+
+Oltre ai concetti base (build, run, compose), per progetti professionali è fondamentale comprendere come **distribuire** e **versionare** le immagini Docker.
+
+#### Container Registry
+
+Un **Container Registry** è un repository centralizzato dove vengono archiviate e distribuite le immagini Docker. Funziona come un "magazzino" di immagini, permettendo di:
+- **Archiviare** immagini in modo sicuro e organizzato
+- **Condividere** immagini tra diversi ambienti (sviluppo, CI, produzione)
+- **Versionare** le immagini con tag diversi
+- **Distribuire** immagini a server di deployment
+
+**Esempi di Registry**:
+- **Docker Hub**: Registry pubblico di default (`docker pull python:3.10`)
+- **GitLab Container Registry**: Registry privato integrato in GitLab
+- **AWS ECR**, **Google GCR**, **Azure ACR**: Registry cloud dei principali provider
+
+```mermaid
+flowchart LR
+    subgraph Local["💻 Macchina Locale"]
+        B["🔨 docker build"] --> I["📦 Immagine locale"]
+    end
+    
+    subgraph Registry["☁️ Container Registry"]
+        R1["📦 app:v1.0"]
+        R2["📦 app:v1.1"]
+        R3["📦 app:latest"]
+    end
+    
+    subgraph Servers["🖥️ Server Deployment"]
+        S1["🟢 Production"]
+        S2["🟡 Staging"]
+    end
+    
+    I -->|"docker push"| Registry
+    Registry -->|"docker pull"| S1
+    Registry -->|"docker pull"| S2
+    
+    style Registry fill:#e3f2fd
+```
+
+**Nel nostro progetto**: Utilizziamo **GitLab Container Registry** (`registry.gitlab.com/luca_di_leo/cloudedgecomputing`) per archiviare le immagini buildate dalla pipeline CI.
+
+---
+
+#### Tag delle Immagini
+
+Un **Tag** è un'etichetta che identifica una specifica versione di un'immagine Docker. Il formato completo di un'immagine è:
+
+```
+[registry]/[repository]:[tag]
+```
+
+**Esempi**:
+- `python:3.10` → Registry: Docker Hub (implicito), Repository: python, Tag: 3.10
+- `registry.gitlab.com/luca_di_leo/cloudedgecomputing:a1b2c3d4` → Tag: commit SHA
+- `registry.gitlab.com/luca_di_leo/cloudedgecomputing:latest` → Tag: latest
+
+**Strategie di tagging comuni**:
+
+| Tag | Descrizione | Esempio |
+|-----|-------------|----------|
+| `latest` | Ultima versione stabile. Sovrascritta ad ogni build. | `app:latest` |
+| Commit SHA | Identificatore univoco del commit. Permette tracciabilità esatta. | `app:a1b2c3d4` |
+| Semantic Version | Versioning semantico (major.minor.patch). | `app:v1.2.3` |
+| Branch name | Nome del branch da cui è stata buildata. | `app:feature-login` |
+| Timestamp | Data/ora del build. | `app:20260125-1430` |
+
+```mermaid
+flowchart TD
+    subgraph Image["📦 Stessa Immagine (ID: abc123)"]
+        T1["🏷️ app:latest"]
+        T2["🏷️ app:a1b2c3d4"]
+        T3["🏷️ app:v1.0.0"]
+    end
+    
+    Note["💡 Un'immagine può avere<br/>MULTIPLI tag che puntano<br/>allo stesso contenuto"]
+    
+    T1 -.-> Note
+    T2 -.-> Note
+    T3 -.-> Note
+```
+
+**Nel nostro progetto**: Ogni build crea due tag:
+- `$CI_COMMIT_SHORT_SHA` (es. `a1b2c3d4`) → Tracciabilità del commit
+- `latest` → Sempre l'ultima versione
+
+---
+
 ## 1.2 Concetti CI/CD
 
 **CI/CD** (Continuous Integration / Continuous Delivery) è una pratica fondamentale nello sviluppo software moderno che automatizza il processo di verifica, test e deployment del codice.
@@ -352,7 +442,60 @@ flowchart LR
 
 ---
 
-### 1.2.4 Keywords del File `.gitlab-ci.yml`
+### 1.2.4 Runner
+
+Un **GitLab Runner** è un'applicazione che esegue i job definiti nella pipeline CI/CD. Quando fai `git push`, GitLab non esegue direttamente i comandi: li delega a un Runner.
+
+**Come funziona**:
+1. Fai `git push` → GitLab crea una pipeline
+2. GitLab cerca un Runner disponibile
+3. Runner scarica il codice dal repository
+4. Runner esegue i comandi definiti in `script`
+5. Runner riporta risultati (log, exit code, artifacts) a GitLab
+
+```mermaid
+sequenceDiagram
+    participant Dev as 👨‍💻 Developer
+    participant GL as ☁️ GitLab
+    participant SR as 🖥️ Shared Runner
+    participant SHR as 💻 Self-Hosted Runner
+    
+    Dev->>GL: git push
+    GL->>GL: Crea Pipeline
+    
+    alt Job senza tag specifici
+        GL->>SR: Assegna job
+        SR->>SR: Esegue script
+        SR-->>GL: Risultati + Log
+    else Job con tag "windows"
+        GL->>SHR: Assegna job
+        SHR->>SHR: Esegue script
+        SHR-->>GL: Risultati + Log
+    end
+    
+    GL-->>Dev: Pipeline completata ✅/❌
+```
+
+**Tipi di Runner**:
+
+| Tipo | Descrizione | Quando Usarlo |
+|------|-------------|---------------|
+| **Shared Runner** | Fornito gratuitamente da GitLab. Gira su server cloud GitLab. | CI: test, lint, build immagini |
+| **Self-Hosted Runner** | Installato sulla TUA macchina. Ha accesso a risorse locali. | CD: deployment su macchina locale |
+| **Group Runner** | Condiviso tra progetti dello stesso gruppo GitLab. | Team con più progetti |
+
+**Executor**: Definisce COME il Runner esegue i job:
+- `docker`: Ogni job gira in un container Docker isolato
+- `shell`: Job eseguiti direttamente nella shell del sistema (PowerShell, Bash)
+- `kubernetes`: Job eseguiti come pod Kubernetes
+
+**Nel nostro progetto**:
+- **Shared Runner** (cloud): Per CI → test, lint, build immagini Docker
+- **Self-Hosted Runner** (Windows locale): Per CD → deployment con `docker-compose`
+
+---
+
+### 1.2.5 Keywords del File `.gitlab-ci.yml`
 
 Il file `.gitlab-ci.yml` utilizza una serie di **parole chiave** (keywords) che definiscono il comportamento della pipeline. Comprendere queste keywords è fondamentale per configurare correttamente la CI/CD.
 
@@ -1198,6 +1341,418 @@ if 'test' in sys.argv:
 | Security | `security_dependencies` | ~15s | ⚠️ Warning |
 
 **Tempo totale pipeline**: ~1m 20s
+
+# PARTE 4: Fase 4 - Continuous Deployment
+
+## Obiettivo
+
+Implementare Continuous Deployment (CD) automatizzato per deployare l'applicazione Django su ambiente locale ogni volta che il codice passa i test della pipeline CI. Questo completa il ciclo DevOps: dal commit al deployment automatico.
+
+---
+
+## Panoramica Step
+
+```mermaid
+flowchart LR
+    S1[📁 Step 1<br/>Docker Files<br/>Dev vs Prod] --> S2[📦 Step 2<br/>Container Registry<br/>GitLab Setup]
+    S2 --> S3[🔨 Step 3<br/>Pipeline Package<br/>Build Automatico]
+    S3 --> S4[🖥️ Step 4<br/>Self-Hosted Runner<br/>Deploy Locale]
+    S4 --> S5[🚀 Step 5<br/>Deploy Stage<br/>Coming Soon]
+```
+
+---
+
+## Cosa Abbiamo Fatto
+
+### Step 1: Preparazione Docker Files
+
+**Obiettivo**: Separare configurazione **development** (con hot-reload) da **production** (con immagini immutabili).
+
+#### File Creati
+
+**1. `docker-compose.prod.yml`** (versione production):
+
+```yaml
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: newspaper_db_prod
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ${IMAGE_NAME}  # ← Immagine pre-buildata da registry
+    container_name: newspaper_web_prod
+    ports:
+      - "8001:8000"       # ← Porta 8001 per non conflittare con dev
+    environment:
+      - DJANGO_SETTINGS_MODULE=django_project.production_settings
+      - MYSQL_HOST=db
+      # ... altre variabili da .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data_prod:
+```
+
+**Punti chiave**:
+- `image: ${IMAGE_NAME}`: Usa immagine pre-buildata (non rebuilda)
+- **NO bind mount** del codice: Il codice è embedded nell'immagine
+- Porta **8001**: Evita conflitti con ambiente development (8000)
+- Variabili da file `.env`: Secrets non hardcodati
+
+**2. `.env.example`** (template per secrets):
+
+```env
+IMAGE_NAME=registry.gitlab.com/luca_di_leo/cloudedgecomputing:latest
+DJANGO_SECRET_KEY=your-production-secret-key
+MYSQL_DATABASE=blog
+MYSQL_USER=django
+MYSQL_PASSWORD=your-secure-password
+MYSQL_ROOT_PASSWORD=your-root-password
+```
+
+#### Differenza Development vs Production
+
+| Aspetto | Development | Production |
+|---------|-------------|------------|
+| **File** | `docker-compose.yml` | `docker-compose.prod.yml` |
+| **Build** | `build: .` (rebuilda) | `image: ${IMAGE_NAME}` (pre-buildata) |
+| **Codice** | Bind mount (`volumes: .:/app`) | Embedded nell'immagine |
+| **Modifiche** | Immediate (hot-reload) | Richiedono rebuild + redeploy |
+| **Porta** | 8000 | 8001 |
+| **Uso** | Sviluppo quotidiano | Deployment production-like |
+
+```mermaid
+flowchart LR
+    subgraph Dev["🔧 Development"]
+        D1[docker-compose.yml]
+        D2[build: .]
+        D3[volumes: .:/app]
+        D4[Porta 8000]
+    end
+    
+    subgraph Prod["🚀 Production"]
+        P1[docker-compose.prod.yml]
+        P2["image: ${IMAGE_NAME}"]
+        P3[NO volume mount]
+        P4[Porta 8001]
+    end
+    
+    Dev -->|"Velocità iterazione"| OK1[✅ Modifiche immediate]
+    Prod -->|"Isolamento + Portabilità"| OK2[✅ Immagine immutabile]
+```
+
+---
+
+### Step 2: GitLab Container Registry
+
+**Obiettivo**: Configurare registry Docker privato su GitLab per condividere immagini tra pipeline CI e server deployment.
+
+#### Configurazione
+
+**1. Abilitazione Registry**:
+- GitLab → Deploy → Container Registry
+- URL: `registry.gitlab.com/luca_di_leo/cloudedgecomputing`
+
+**2. Autenticazione Docker**:
+```powershell
+# Login con Personal Access Token (scope: read_registry, write_registry)
+docker login registry.gitlab.com
+```
+
+**3. Workflow manuale testato**:
+
+```powershell
+# Build immagine locale
+docker build -t newspaper-web:test .
+
+# Tag per registry (crea alias con nome completo)
+docker tag newspaper-web:test registry.gitlab.com/luca_di_leo/cloudedgecomputing:test
+
+# Push a GitLab Container Registry
+docker push registry.gitlab.com/luca_di_leo/cloudedgecomputing:test
+
+# Verifica: pull da registry (simula macchina pulita)
+docker pull registry.gitlab.com/luca_di_leo/cloudedgecomputing:test
+```
+
+#### Concetto Chiave: `docker tag`
+
+`docker tag` **non duplica** l'immagine, crea un **alias** che punta allo stesso IMAGE ID:
+
+```mermaid
+flowchart LR
+    subgraph Immagine["📦 Stessa Immagine (abc123def456)"]
+        T1["newspaper-web:test"]
+        T2["registry.gitlab.com/.../cloudedgecomputing:test"]
+    end
+    
+    T1 -.->|"Stesso IMAGE ID"| T2
+    
+    T2 -->|"docker push"| R[("☁️ GitLab<br/>Container Registry")]
+```
+
+**Perché serve**: Docker push richiede il nome completo con registry per sapere dove uploadare.
+
+---
+
+### Step 3: Pipeline Package Stage
+
+**Obiettivo**: Automatizzare build e push delle immagini Docker nella pipeline CI.
+
+#### Modifiche a `.gitlab-ci.yml`
+
+**Nuovo stage aggiunto**:
+
+```yaml
+stages:
+  - build
+  - test
+  - security
+  - package    # ← NUOVO STAGE
+```
+
+**Variabili Docker**:
+
+```yaml
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+```
+
+| Variabile | Valore | Spiegazione |
+|-----------|--------|-------------|
+| `DOCKER_DRIVER` | `overlay2` | Driver storage Docker ottimale |
+| `DOCKER_TLS_CERTDIR` | `/certs` | Certificati TLS per Docker-in-Docker |
+| `IMAGE_TAG` | `$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA` | Tag con commit SHA (es. `a1b2c3d4`) |
+| `IMAGE_LATEST` | `$CI_REGISTRY_IMAGE:latest` | Tag latest sempre aggiornato |
+
+**Job `build_docker_image`**:
+
+```yaml
+build_docker_image:
+  stage: package
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+  only:
+    - 02-django-base-project
+  dependencies: []
+```
+
+**Analisi job**:
+
+| Elemento | Spiegazione |
+|----------|-------------|
+| `image: docker:24-dind` | Docker-in-Docker: container che può buildare immagini Docker |
+| `services: docker:24-dind` | Servizio Docker daemon necessario per DinD |
+| `$CI_REGISTRY_PASSWORD` | Variabile GitLab automatica per autenticazione |
+| `docker build -t $IMAGE_TAG -t $IMAGE_LATEST .` | Build con 2 tag contemporaneamente |
+| `dependencies: []` | Non serve scaricare artifacts da job precedenti |
+
+```mermaid
+flowchart TD
+    subgraph Pipeline["🔄 GitLab Pipeline"]
+        A[📤 git push] --> B[🧪 Test Stage]
+        B --> C[🔒 Security Stage]
+        C --> D[📦 Package Stage]
+        
+        subgraph PackageJob["Job: build_docker_image"]
+            D --> D1[🔐 Login Registry]
+            D1 --> D2[🔨 docker build]
+            D2 --> D3[📤 docker push :sha]
+            D3 --> D4[📤 docker push :latest]
+        end
+    end
+    
+    D4 --> E[("☁️ GitLab<br/>Container Registry")]
+    
+    E --> F["📦 cloudedgecomputing:a1b2c3d4"]
+    E --> G["📦 cloudedgecomputing:latest"]
+```
+
+---
+
+### Step 4: GitLab Runner Self-Hosted
+
+**Obiettivo**: Installare GitLab Runner sulla propria macchina Windows per deployment locale.
+
+#### Perché Serve un Self-Hosted Runner?
+
+```mermaid
+flowchart TB
+    subgraph Problem["❌ Problema: Shared Runner"]
+        SR[("☁️ Shared Runner<br/>Server remoto GitLab")]
+        SR -->|"NON può accedere"| LH["🖥️ Tua macchina<br/>localhost:8001"]
+    end
+    
+    subgraph Solution["✅ Soluzione: Self-Hosted Runner"]
+        GL[("☁️ GitLab")] -->|"Triggera job"| SHR["🖥️ Runner sulla<br/>TUA macchina"]
+        SHR -->|"Accesso diretto"| DD["🐳 Docker Desktop"]
+        DD --> C["🟢 Container deployati<br/>localhost:8001"]
+    end
+```
+
+**Shared Runner**:
+- Gira su server remoto GitLab
+- NON può accedere a `localhost` della tua macchina
+- Container temporanei (distrutti dopo job)
+
+**Self-Hosted Runner**:
+- Gira sulla TUA macchina
+- Accesso diretto a Docker Desktop locale
+- Può deployare container persistenti
+
+#### Installazione
+
+**1. Download**:
+```powershell
+New-Item -ItemType Directory -Path C:\GitLab-Runner
+Invoke-WebRequest -Uri "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-windows-amd64.exe" -OutFile "C:\GitLab-Runner\gitlab-runner.exe"
+```
+
+**2. Registrazione**:
+```powershell
+cd C:\GitLab-Runner
+.\gitlab-runner.exe register
+```
+
+| Parametro | Valore |
+|-----------|--------|
+| URL | `https://gitlab.com/` |
+| Token | Da GitLab → Settings → CI/CD → Runners |
+| Description | `windows-local-runner` |
+| Tags | `windows,local,docker` |
+| Executor | `shell` |
+
+**3. Installazione come servizio Windows**:
+```powershell
+.\gitlab-runner.exe install
+.\gitlab-runner.exe start
+.\gitlab-runner.exe status
+# Output: Service is running ✅
+```
+
+**4. Verifica su GitLab**: Runner visibile con stato 🟢 verde.
+
+#### Tag-Based Execution
+
+```yaml
+deploy_local:
+  tags:
+    - windows    # ← Esegue SOLO su runner con tag "windows"
+  script:
+    - docker-compose -f docker-compose.prod.yml up -d
+```
+
+- Job **con** tag `windows` → Self-hosted runner (tua macchina)
+- Job **senza** tag → Shared runner (cloud GitLab)
+
+#### Confronto Runner
+
+| Aspetto | Shared Runner | Self-Hosted Runner |
+|---------|--------------|-------------------|
+| **Location** | Server remoto GitLab | Tua macchina Windows |
+| **Accesso localhost** | ❌ No | ✅ Sì |
+| **Accesso Docker locale** | ❌ No | ✅ Sì |
+| **Deploy locale** | ❌ Impossibile | ✅ Possibile |
+| **Costo** | Gratis (minuti limitati) | Gratis (usa tua CPU) |
+| **Setup** | Zero | Richiede installazione |
+| **Uso tipico** | CI (test, lint, build) | CD (deployment) |
+
+---
+
+## Problemi Riscontrati e Soluzioni
+
+### 🔴 Problema 1: Runner Executor PowerShell vs pwsh
+
+**Sintomo**:
+```
+exec: "pwsh": executable file not found in %PATH%
+```
+
+**Causa**: Il file `config.toml` generato automaticamente usava `shell = "pwsh"` (PowerShell Core) invece di `shell = "powershell"` (Windows PowerShell).
+
+**Soluzione**: Modificare `C:\GitLab-Runner\config.toml`:
+```toml
+[[runners]]
+  name = "windows-local-runner"
+  executor = "shell"
+  shell = "powershell"   # ← Cambiato da "pwsh"
+```
+
+Poi riavviare:
+```powershell
+.\gitlab-runner.exe restart
+```
+
+---
+
+## Risultato Fase 4 (Step 1-4)
+
+✅ **Separazione Dev/Prod** con docker-compose dedicati  
+✅ **GitLab Container Registry** configurato e funzionante  
+✅ **Pipeline Package Stage** automatizza build e push immagini  
+✅ **Self-Hosted Runner** installato per deployment locale  
+
+---
+
+## Workflow Completo CI/CD
+
+```mermaid
+flowchart TD
+    A["👨‍💻 Developer"] -->|git push| B["🪝 Pre-commit Hook"]
+    B -->|"Black formatta"| C["📤 Push to GitLab"]
+    
+    subgraph CI["🔄 CI - Shared Runner (Cloud)"]
+        C --> D["📦 Build Check"]
+        D --> E["🧪 Test + Coverage"]
+        E --> F["⬛ Format Check"]
+        F --> G["📏 Lint"]
+        G --> H["🔒 Security Scan"]
+        H --> I["🐳 Build Docker Image"]
+        I --> J["📤 Push to Registry"]
+    end
+    
+    subgraph CD["🚀 CD - Self-Hosted Runner (Locale)"]
+        J --> K["📥 Pull Image"]
+        K --> L["🔄 docker-compose up"]
+        L --> M["🟢 Container Running"]
+    end
+    
+    M --> N["🌐 localhost:8001"]
+```
+
+---
+
+## Prossimi Passi (Step 5)
+
+- [ ] Aggiungere job `deploy` nella pipeline
+- [ ] Esecuzione su self-hosted runner (tag `windows`)
+- [ ] Pull immagine da registry + deploy con docker-compose
+- [ ] App automaticamente deployata dopo ogni push
 
 ---
 
