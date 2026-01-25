@@ -1,5 +1,9 @@
 # Django Newspaper
 
+[![pipeline status](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/badges/02-django-base-project/pipeline.svg)](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/-/commits/02-django-base-project)
+[![coverage report](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/badges/02-django-base-project/coverage.svg)](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/-/commits/02-django-base-project)
+
+
 ## Project description
 
 This project is a basic newspaper platform, it is inspired to the django for beginners project whose repository 
