@@ -6,6 +6,7 @@ stages:
   - build  # fase di costruzione del progetto
   - test # esecuzione di tutti i test
   - security
+  - package 
 # Qui definiamo l'ordine delle fasi, ossia prima di eseguire i job di test, vengono eseguiti i job di build.
 # Ovviamente i job di test vegnono eseguiti solo se i job di build sono andati a buon fine.
 
@@ -16,6 +17,12 @@ variables:
   DJANGO_SETTINGS_MODULE: "django_project.settings"
   # Disabilita prompt interattivi
   DEBIAN_FRONTEND: "noninteractive" # disabilita prompt interattivi per apt-get
+  # variabili docker documentate meglio nel file appunti.md
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
 
 # Template per job Python (riutilizzabile), così da non dover riscrivere ogni volta delle parti comuni
 .python_template: &python_template
@@ -120,3 +127,27 @@ security_dependencies:
     expire_in: 30 days
   allow_failure: true
 
+build_docker_image:
+  stage: package
+  image: docker:24-dind  # Docker-in-Docker (può buildare immagini Docker)
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "🐳 Configurazione Docker..."
+    - docker info
+    - echo "🔐 Login GitLab Container Registry..."
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - echo "📦 Build Docker image..."
+    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+    
+    - echo "📤 Push immagine a registry..."
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+    
+    - echo "✅ Immagine pubblicata:"
+    - echo "  - $IMAGE_TAG"
+    - echo "  - $IMAGE_LATEST"
+  only:
+    - 02-django-base-project  # Esegue solo su questo branch
+  dependencies: []  # Non serve artifacts da job precedenti
