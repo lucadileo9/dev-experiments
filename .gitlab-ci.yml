@@ -210,7 +210,7 @@ deploy_production:
     - Start-Sleep -Seconds 10
     
     - echo "✅ Deployment completato!"
-    - echo "🌐 App disponibile su: http://localhost:8001"
+    - echo "Applicazione disponibile su:http://localhost:8001"
     
     - echo "📊 Container in esecuzione:"
     - docker ps --filter "name=newspaper"
