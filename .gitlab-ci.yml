@@ -151,3 +151,22 @@ build_docker_image:
   only:
     - 02-django-base-project  # Esegue solo su questo branch
   dependencies: []  # Non serve artifacts da job precedenti
+
+# Job 6: Test GitLab Runner self-hosted su Windows, mi serve solo per verificare che il runner funzioni
+test_runner:
+  stage: package  
+  tags:
+    - windows  # ← Esegue SOLO su runner con tag "windows"
+  script:
+    - echo "🎯 Test GitLab Runner self-hosted"
+    - echo "Hostname:"
+    - hostname
+    - echo "Docker version:"
+    - docker --version
+    - echo "Docker Compose version:"
+    - docker-compose --version
+    - echo "Working directory:"
+    - pwd
+    - echo "✅ Runner funzionante!"
+  only:
+    - 02-django-base-project
