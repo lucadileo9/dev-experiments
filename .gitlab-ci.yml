@@ -1,0 +1,70 @@
+# .gitlab-ci.yml
+# Pipeline CI/CD per Django Newspaper Project
+
+# Definizione stages (fasi sequenziali)
+stages:
+  - build  # fase di costruzione del progetto
+  - test # esecuzione di tutti i test
+# Qui definiamo l'ordine delle fasi, ossia prima di eseguire i job di test, vengono eseguiti i job di build.
+# Ovviamente i job di test vegnono eseguiti solo se i job di build sono andati a buon fine.
+
+
+# Variabili globali, che saranno disponibili in tutti i job
+variables:
+  # Django settings per test
+  DJANGO_SETTINGS_MODULE: "django_project.settings"
+  # Disabilita prompt interattivi
+  DEBIAN_FRONTEND: "noninteractive" # disabilita prompt interattivi per apt-get
+
+# Template per job Python (riutilizzabile), così da non dover riscrivere ogni volta delle parti comuni
+.python_template: &python_template
+  image: python:3.10-slim
+  before_script:
+    # Installa dipendenze sistema (senza MySQL per ora, usiamo SQLite)
+    - apt-get update -qq # Aggiorna lista pacchetti, silenziosamente (-qq)
+    - apt-get install -y -qq gcc python3-dev # pacchetti necessari per compilare alcune dipendenze Python (nessun prompt grazie a -y -qq)
+    # Installa dipendenze Python (senza mysqlclient, uso SQLite)
+    - pip install --upgrade pip # Aggiorna pip all'ultima versione, per evitare problemi con pacchetti più recenti
+    - pip install -r requirements.txt || pip install Django==4.0 environs crispy-bootstrap5 django-crispy-forms whitenoise
+    # installa dipendenze, con fallback in caso di problemi con requirements.txt
+
+# Job 1: Questo è il job di build, che verifica la sintassi del codice Python
+build_job:
+  <<: *python_template # Riutilizzo il template definito sopra
+  stage: build # specifico che questo job appartiene alla fase di build
+  script: # e dico cosa deve fare questo job
+    - echo "Verifico sintassi Python..."
+    - python -m py_compile manage.py # Verifica sintassi file principale
+    - python -m compileall django_project/ -q # Compilazione silenziosa di tutto il progetto
+    - echo "✅ Build completato con successo"
+  artifacts: # Salvo i file compilati come artefatti per i job successivi
+    paths:
+      - django_project/
+    expire_in: 1 hour # Gli artefatti scadono dopo 1 ora
+
+# Job 2: Test Django
+test_django:
+  <<: *python_template
+  stage: test
+  script:
+    - echo "Eseguo test Django..."
+    # Migra database (SQLite in memoria per velocità)
+    - python manage.py migrate --noinput
+    # Esegui test con verbosity 2
+    - python manage.py test accounts articles pages --verbosity=2
+    - echo "✅ Test completati con successo"
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  dependencies:
+    - build_job
+
+# Job 3: Linting (opzionale ma consigliato)
+lint_code:
+  <<: *python_template
+  stage: test
+  script:
+    - echo "Controllo qualità codice..."
+    - pip install flake8
+    # Ignora alcuni warning comuni Django
+    - flake8 --exclude=migrations,venv,__pycache__ --max-line-length=120 --ignore=E501,W503
+    - echo "✅ Linting completato"
+  allow_failure: true  # Non blocca pipeline se fallisce
