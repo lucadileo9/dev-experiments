@@ -47,13 +47,35 @@ test_django:
   <<: *python_template
   stage: test
   script:
-    - echo "Eseguo test Django..."
-    # Migra database (SQLite in memoria per velocità)
-    - python manage.py migrate --noinput
-    # Esegui test con verbosity 2
-    - python manage.py test accounts articles pages --verbosity=2
-    - echo "✅ Test completati con successo"
+    - echo "🧪 Eseguo test Django con coverage..."
+    
+    # Installa coverage
+    - pip install coverage
+    
+    # Esegui test con coverage
+    - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
+    
+    # Report coverage in console
+    - coverage report
+    
+    # Report coverage dettagliato (mostra linee non coperte)
+    - coverage report --show-missing
+    
+    # Genera report XML per GitLab
+    - coverage xml
+    
+    - echo "✅ Test completati - Coverage generato"
+  
+  # Estrai percentuale coverage per badge GitLab
   coverage: '/TOTAL.*\s+(\d+%)$/'
+  # Artifacts
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 30 days
+  
   dependencies:
     - build_job
 
