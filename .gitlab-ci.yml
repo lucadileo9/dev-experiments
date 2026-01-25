@@ -100,3 +100,22 @@ format_check:
     - black --check . --line-length=120  # --check = verifica, non modifica
   allow_failure: true # Non blocca pipeline se fallisce
 
+# Job 5: Sicurezza 
+security_dependencies:
+  <<: *python_template
+  stage: security
+  script:
+    - echo "🔒 Controllo vulnerabilità..."
+    - pip install safety
+    - safety check --file requirements.txt --json > safety-report.json || true
+    - safety check --file requirements.txt --full-report
+    - echo "✅ Security scan completato"
+  artifacts:
+    reports:
+      dependency_scanning: safety-report.json
+    paths:
+      - safety-report.json
+    when: always
+    expire_in: 30 days
+  allow_failure: true
+
