@@ -68,3 +68,13 @@ lint_code:
     - flake8 --exclude=migrations,venv,__pycache__ --max-line-length=120 --ignore=E501,W503
     - echo "✅ Linting completato"
   allow_failure: true  # Non blocca pipeline se fallisce
+
+# Job 4: Formattazione codice (opzionale)
+format_check:
+  <<: *python_template
+  stage: test
+  script:
+    - pip install black
+    - black --check .  # --check = verifica, non modifica
+  allow_failure: true # Non blocca pipeline se fallisce
+
