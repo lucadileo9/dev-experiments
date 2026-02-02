@@ -23,8 +23,9 @@ services:
 
   web:
     # USA immagine da registry (NO build)
-    image: ${DEPLOY_IMAGE_NAME:-newspaper-web:latest}
-    
+    image: ${IMAGE_NAME:-registry.gitlab.com/luca_di_leo/cloudedgecomputing:latest}
+    #image: registry.gitlab.com/luca_di_leo/cloudedgecomputing:latest
+
     container_name: newspaper_web_prod
     command: >
       sh -c "python manage.py migrate &&
