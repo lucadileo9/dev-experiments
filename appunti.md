@@ -52,7 +52,13 @@
    - [Architettura Sistema](#architettura-sistema)
    - [Workflow CI/CD](#workflow-completo-cicd)
    - [Workflow Development](#workflow-development)
-7. [Comandi Utili](#comandi-utili)
+7. [Guida Pratica al Testing](#guida-pratica-al-testing)
+   - [Esecuzione in Locale con Docker](#esecuzione-in-locale-con-docker)
+   - [Esecuzione in Locale senza Docker](#esecuzione-in-locale-senza-docker)
+   - [Testare la Pipeline CI](#testare-la-pipeline-ci)
+   - [Testare il Deploy](#testare-il-deploy)
+   - [Riepilogo: Differenze tra i Tre Ambienti](#riepilogo-differenze-tra-i-tre-ambienti)
+8. [Comandi Utili](#comandi-utili)
    - [Docker & Docker Compose](#docker--docker-compose)
    - [Debug e Ispezione](#debug-e-ispezione)
    - [Django in Container](#django-in-container)
@@ -2594,6 +2600,355 @@ docker-compose down -v
 ```
 
 **Quando usare**: Test con MySQL, verifica migrazioni, simulare production.
+
+---
+
+# Guida Pratica al Testing
+
+Questa sezione spiega **passo-passo** come testare l'intero progetto nelle diverse modalità: sviluppo locale, ambiente Docker e deploy in produzione.
+
+---
+
+## Esecuzione in Locale con Docker
+
+### Cosa rappresenta
+Questa modalità simula un **ambiente production-like** sulla tua macchina. Crea container isolati con:
+- **MySQL** come database (non SQLite)
+- **uWSGI** come application server (non il server di sviluppo Django)
+- **Networking Docker** tra i container
+
+**Scopo**: Verificare che l'applicazione funzioni correttamente in un ambiente simile alla produzione, testare le migrazioni su MySQL, verificare la configurazione Docker prima del deploy.
+
+### Step-by-Step
+
+```bash
+# 1. Posizionati nella directory del progetto
+cd C:\Users\lucad\Desktop\Cloud And Edge Computing\Faenza\cloudedgecomputing
+
+# 2. Avvia i servizi (prima volta: builda anche l'immagine)
+docker-compose up --build
+
+# 3. Oppure, per le volte successive (immagine già buildata)
+docker-compose up
+
+# 4. Per eseguire in background (detached mode)
+docker-compose up -d
+```
+
+### Cosa viene creato
+
+| Elemento | Descrizione |
+|----------|-------------|
+| **Container `newspaper_db`** | MySQL 8.0 con database `blog`, user `django`, password `django_password` |
+| **Container `newspaper_web`** | App Django con uWSGI, connessa a MySQL |
+| **Volume `mysql_data`** | Persistenza dati MySQL (sopravvive al `down`) |
+| **Network `cloudedgecomputing_default`** | Rete virtuale per comunicazione tra container |
+
+### Come controllare
+
+```bash
+# Verifica container attivi
+docker ps
+# Output atteso: 2 container (newspaper_db, newspaper_web) con status "Up"
+
+# Verifica log dell'applicazione
+docker logs newspaper_web
+# Output atteso: log uWSGI con "spawned uWSGI worker"
+
+# Verifica log database
+docker logs newspaper_db
+# Output atteso: "ready for connections"
+
+# Test connessione al database dall'interno del container
+docker exec -it newspaper_db mysql -u django -pdjango_password -e "SHOW DATABASES;"
+# Output atteso: lista database con "blog"
+```
+
+### Accesso all'applicazione
+- **URL**: http://localhost:8000
+- **Settings utilizzati**: `django_project.production_settings`
+- **Database**: MySQL (container `newspaper_db`)
+
+### Fermare l'ambiente
+
+```bash
+# Ferma i container (dati MySQL persistono nel volume)
+docker-compose down
+
+# Ferma i container E cancella i volumi (reset completo database)
+docker-compose down -v
+```
+
+---
+
+## Esecuzione in Locale senza Docker
+
+### Cosa rappresenta
+Questa è la modalità di **sviluppo tradizionale Django**: Python installato sulla macchina, server di sviluppo integrato, database SQLite locale.
+
+**Scopo**: Sviluppo rapido, test immediati delle modifiche al codice, debug semplificato senza overhead di Docker.
+
+### Step-by-Step
+
+```bash
+# 1. Posizionati nella directory del progetto
+cd C:\Users\lucad\Desktop\Cloud And Edge Computing\Faenza\cloudedgecomputing
+
+# 2. Crea ambiente virtuale Python
+python -m venv venv
+
+# 3. Attiva l'ambiente virtuale
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# 4. Installa le dipendenze (senza mysqlclient per evitare problemi)
+pip install Django==4.0 environs crispy-bootstrap5 django-crispy-forms whitenoise
+
+# 5. Applica le migrazioni (crea/aggiorna db.sqlite3)
+python manage.py migrate
+
+# 6. (Opzionale) Crea un superuser per accedere all'admin
+python manage.py createsuperuser
+
+# 7. Avvia il server di sviluppo
+python manage.py runserver
+```
+
+### Cosa viene creato
+
+| Elemento | Descrizione |
+|----------|-------------|
+| **Cartella `venv/`** | Ambiente virtuale Python isolato |
+| **File `db.sqlite3`** | Database SQLite locale (file singolo) |
+| **Processo Python** | Server di sviluppo Django sulla porta 8000 |
+
+### Come controllare
+
+```bash
+# Verifica che il server sia attivo
+# Output atteso nel terminale:
+# Starting development server at http://127.0.0.1:8000/
+# Quit the server with CTRL-BREAK.
+
+# Verifica database SQLite
+python manage.py dbshell
+# Apre shell SQLite, digita .tables per vedere le tabelle
+
+# Esegui i test Django
+python manage.py test accounts articles pages --verbosity=2
+```
+
+### Accesso all'applicazione
+- **URL**: http://127.0.0.1:8000 oppure http://localhost:8000
+- **Settings utilizzati**: `django_project.settings` (default)
+- **Database**: SQLite (file `db.sqlite3`)
+
+### Fermare l'ambiente
+
+```bash
+# Premi CTRL+C nel terminale dove gira runserver
+
+# Per disattivare l'ambiente virtuale
+deactivate
+```
+
+---
+
+## Testare la Pipeline CI
+
+### Cosa rappresenta
+La pipeline CI (Continuous Integration) è un processo **automatico** che si attiva ad ogni push su GitLab. Esegue una serie di controlli per garantire la qualità del codice.
+
+**Scopo**: Verificare automaticamente che il codice sia sintatticamente corretto, che i test passino, che non ci siano vulnerabilità di sicurezza, e che l'immagine Docker si costruisca correttamente.
+
+### Step-by-Step
+
+```bash
+# 1. Fai le tue modifiche al codice
+
+# 2. Aggiungi i file modificati
+git add .
+
+# 3. Crea un commit
+git commit -m "feat: descrizione della modifica"
+
+# 4. Pusha al branch (questo attiva la pipeline)
+git push origin 02-django-base-project
+```
+
+### Cosa succede su GitLab
+
+Dopo il push, vai su **GitLab → CI/CD → Pipelines** e vedrai:
+
+| Stage | Job | Cosa fa | Risultato atteso |
+|-------|-----|---------|------------------|
+| **build** | `build_job` | Compila e verifica sintassi Python | ✅ Verde se nessun errore sintassi |
+| **test** | `test_django` | Esegue test Django con coverage | ✅ Verde + percentuale coverage |
+| **test** | `lint_code` | Controlla stile codice con flake8 | ⚠️ Può fallire (allow_failure) |
+| **test** | `format_check` | Verifica formattazione con black | ⚠️ Può fallire (allow_failure) |
+| **security** | `security_dependencies` | Scansiona vulnerabilità dipendenze | ⚠️ Può fallire (allow_failure) |
+| **package** | `build_docker_image` | Builda e pusha immagine Docker | ✅ Verde se build OK |
+| **package** | `test_runner` | Verifica che il runner Windows funzioni | ✅ Verde se runner OK |
+
+### Come controllare
+
+1. **Pipeline Overview**: Vai su GitLab → CI/CD → Pipelines
+   - Vedi stato generale: 🟢 passed, 🔴 failed, 🟡 running
+
+2. **Dettaglio Job**: Clicca su un job per vedere i log
+   - Log completi dell'esecuzione
+   - Tempo impiegato
+   - Eventuali errori con stack trace
+
+3. **Coverage Badge**: Nel README.md vedi la percentuale di coverage
+
+4. **Artifacts**: Alcuni job producono file scaricabili
+   - `coverage.xml` - Report coverage dettagliato
+   - `safety-report.json` - Report vulnerabilità
+
+### Test locali pre-push (consigliato)
+
+```bash
+# Esegui gli stessi controlli della pipeline localmente
+
+# Test Django
+python manage.py test accounts articles pages --verbosity=2
+
+# Linting
+pip install flake8
+flake8 --exclude=migrations,venv,__pycache__ --max-line-length=120 --ignore=E501,W503
+
+# Security check
+pip install safety
+safety check --file requirements.txt
+
+# Build Docker (verifica che funzioni)
+docker build -t test-build .
+```
+
+---
+
+## Testare il Deploy
+
+### Cosa rappresenta
+Il deploy è il processo che porta l'applicazione dall'immagine Docker costruita dalla pipeline al **server di produzione** (nel nostro caso, un runner self-hosted Windows).
+
+**Scopo**: Rendere l'applicazione accessibile agli utenti finali, utilizzando un ambiente stabile e configurato per la produzione.
+
+### Step-by-Step
+
+#### Deploy Automatico via Pipeline (Metodo Principale)
+
+```bash
+# 1. Assicurati che la pipeline sia passata (tutti gli stage verdi fino a "package")
+
+# 2. Vai su GitLab → CI/CD → Pipelines → [tua pipeline]
+
+# 3. Lo stage "deploy" mostra il job "deploy_production" con un pulsante ▶️ Play
+#    (è manuale per sicurezza)
+
+# 4. Clicca su ▶️ per avviare il deploy
+
+# 5. Monitora i log del job in tempo reale
+```
+
+### Cosa viene creato
+
+| Elemento | Descrizione |
+|----------|-------------|
+| **Container `newspaper_db_prod`** | MySQL 8.0 su porta 3307 (diversa da dev) |
+| **Container `newspaper_web_prod`** | App da immagine registry GitLab su porta 8001 |
+| **Volume `mysql_data_prod`** | Dati MySQL produzione (separato da dev) |
+| **Network `newspaper_prod`** | Rete isolata per produzione |
+
+### Come controllare
+
+```bash
+# Verifica container attivi
+docker ps --filter "name=newspaper"
+# Output atteso: 2 container con "_prod" nel nome, status "Up"
+
+# Verifica log applicazione
+docker logs newspaper_web_prod
+# Output atteso: "spawned uWSGI worker", nessun errore
+
+# Verifica log database
+docker logs newspaper_db_prod
+# Output atteso: "ready for connections"
+
+# Test HTTP
+curl http://localhost:8001
+# Oppure apri browser: http://localhost:8001
+# Output atteso: HTML della homepage
+
+# Verifica migrazioni applicate
+docker exec newspaper_web_prod python manage.py showmigrations
+# Output atteso: [X] per tutte le migrazioni
+```
+
+### Accesso all'applicazione
+- **URL**: http://localhost:8001
+- **Settings utilizzati**: `django_project.production_settings`
+- **Database**: MySQL (container `newspaper_db_prod`)
+- **Immagine**: Quella buildata dalla pipeline e pushata sul registry GitLab
+
+### Fermare l'ambiente
+
+```bash
+# Ferma i container produzione
+docker-compose -f docker-compose.prod.yml down
+
+# Ferma E cancella volumi (ATTENZIONE: perdi tutti i dati!)
+docker-compose -f docker-compose.prod.yml down -v
+
+# Rimuovi file .env (sicurezza)
+Remove-Item .env
+```
+
+---
+
+## Riepilogo: Differenze tra i Tre Ambienti
+
+### Tabella Comparativa
+
+| Aspetto | Locale senza Docker | Locale con Docker | Produzione |
+|---------|---------------------|-------------------|------------|
+| **Database** | SQLite (`db.sqlite3`) | MySQL (container) | MySQL (container) |
+| **Server** | Django runserver | uWSGI | uWSGI |
+| **Settings** | `settings.py` | `production_settings.py` | `production_settings.py` |
+| **Porta** | 8000 | 8000 | 8001 |
+| **Codice** | File locali | Montato via volume | Dentro l'immagine Docker |
+| **Hot Reload** | ✅ Sì (automatico) | ✅ Sì (volume mount) | ❌ No (rebuild richiesto) |
+| **Scopo** | Sviluppo rapido | Test ambiente prod | Utenti finali |
+
+### Diagramma Flusso Ambienti
+
+```mermaid
+flowchart LR
+    subgraph LOCAL_NO_DOCKER["🐍 Locale senza Docker"]
+        L1[Python + venv] --> L2[runserver]
+        L2 --> L3[SQLite]
+        L3 --> L4["localhost:8000"]
+    end
+    
+    subgraph LOCAL_DOCKER["🐳 Locale con Docker"]
+        D1[docker-compose.yml] --> D2[Container web]
+        D1 --> D3[Container MySQL]
+        D2 --> D4["localhost:8000"]
+    end
+    
+    subgraph PRODUCTION["🚀 Produzione"]
+        P1[docker-compose.prod.yml] --> P2[Container web]
+        P1 --> P3[Container MySQL]
+        P2 --> P4["localhost:8001"]
+        P5[Immagine da Registry] --> P2
+    end
+    
+    LOCAL_NO_DOCKER -->|"git push"| CI["⚙️ Pipeline CI"]
+    LOCAL_DOCKER -->|"git push"| CI
+    CI -->|"Build & Push"| REG[("📦 GitLab Registry")]
+    REG -->|"docker pull"| PRODUCTION
+```
 
 ---
 
