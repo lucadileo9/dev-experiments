@@ -41,6 +41,8 @@ variables:
 build_job:
   <<: *python_template # Riutilizzo il template definito sopra
   stage: build # specifico che questo job appartiene alla fase di build
+  tags:
+    - saas-linux-medium-amd64
   script: # e dico cosa deve fare questo job
     - echo "Verifico sintassi Python..."
     - python -m py_compile manage.py # Verifica sintassi file principale
