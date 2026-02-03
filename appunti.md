@@ -2644,6 +2644,15 @@ docker-compose up -d
 | **Volume `mysql_data`** | Persistenza dati MySQL (sopravvive al `down`) |
 | **Network `cloudedgecomputing_default`** | Rete virtuale per comunicazione tra container |
 
+### Cosa è successo?
+- Docker Compose ha creato e avviato 2 container isolati:
+  - `newspaper_db`: MySQL database
+  - `newspaper_web`: Django app con uWSGI
+- MySQL ha inizializzato il database `blog` con l'utente `django`
+- Django è stato avviato tramite uWSGI, pronto a servire richieste HTTP
+
+Per questa operazione è stato usato il file `docker-compose.yml` presente nella root del progetto, il quale appunto definisce i servizi, volumi e network necessari.
+
 ### Come controllare
 
 ```bash
@@ -2664,10 +2673,19 @@ docker exec -it newspaper_db mysql -u django -pdjango_password -e "SHOW DATABASE
 # Output atteso: lista database con "blog"
 ```
 
-### Accesso all'applicazione
+### Uso dell'applicazione
 - **URL**: http://localhost:8000
-- **Settings utilizzati**: `django_project.production_settings`
-- **Database**: MySQL (container `newspaper_db`)
+- Se volessimo accedere al database sia come django che come root dovremmo usare le seguenti password:
+  - User `django`: password `django_password`
+  - User `root`: password `root_password`
+  Questo perché nel file `docker-compose.yml` abbiamo definito queste credenziali per MySQL. Mentre nel file `docker-compose.prod.yml` abbiamo usato variabili d'ambiente che vengono iniettate dinamicamente durante il deploy.
+  oR5Jy4DFsss6
+- Ho provato poi a creare due utenti: 
+  - User `PROVA1`: password `oR5Jy4DFsss6`
+  - User `PROVA2`: password `oR5Jy4DFsss6`
+  E ho creato articoli e commenti con entrambi gli utenti, tutto funziona correttamente. Fermando e riavviando i container i dati persistono come previsto grazie al volume `mysql_data`.
+  N.B.: per vedere tutti gli articoli non c'è un tasto dedicato, ma bisogna andare all'url diretto `http://localhost:8000/articles/`.
+
 
 ### Fermare l'ambiente
 
@@ -2714,6 +2732,12 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+### Cosa è successo?
+- Ambiente virtuale Python `venv/` creato e attivato
+- Dipendenze installate (Django, environs, crispy-forms, whitenoise)
+- Database SQLite `db.sqlite3` creato con le tabelle iniziali
+- Server di sviluppo Django avviato sulla porta 8000
+
 ### Cosa viene creato
 
 | Elemento | Descrizione |
@@ -2738,10 +2762,13 @@ python manage.py dbshell
 python manage.py test accounts articles pages --verbosity=2
 ```
 
-### Accesso all'applicazione
-- **URL**: http://127.0.0.1:8000 oppure http://localhost:8000
-- **Settings utilizzati**: `django_project.settings` (default)
-- **Database**: SQLite (file `db.sqlite3`)
+### Uso dell'applicazione
+- **URL**: http://localhost:8000
+- Per comodità ho creato un superuser con username `superuser` e password `superuser`, così da poter accedere all'admin di Django su `http://localhost:8000/admin/`.
+- Ovviamente NON ci sono gli utenti precedentemente creati nel database MySQL, in quanto qui stiamo usando SQLite. Quindi il database è vuoto all'inizio.
+- In locale ci sono due utenti creati:
+  - User `LOCALE1`: password `oR5Jy4DFsss6`
+  - User `Pollo`: la password non la ricordo, ma amen 
 
 ### Fermare l'ambiente
 
@@ -2805,26 +2832,6 @@ Dopo il push, vai su **GitLab → CI/CD → Pipelines** e vedrai:
 4. **Artifacts**: Alcuni job producono file scaricabili
    - `coverage.xml` - Report coverage dettagliato
    - `safety-report.json` - Report vulnerabilità
-
-### Test locali pre-push (consigliato)
-
-```bash
-# Esegui gli stessi controlli della pipeline localmente
-
-# Test Django
-python manage.py test accounts articles pages --verbosity=2
-
-# Linting
-pip install flake8
-flake8 --exclude=migrations,venv,__pycache__ --max-line-length=120 --ignore=E501,W503
-
-# Security check
-pip install safety
-safety check --file requirements.txt
-
-# Build Docker (verifica che funzioni)
-docker build -t test-build .
-```
 
 ---
 
