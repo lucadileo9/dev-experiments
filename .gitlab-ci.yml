@@ -57,7 +57,7 @@ test_django:
   stage: test
   script:
     - echo "🧪 Eseguo test Django con coverage..."
-    
+     
     # Installa coverage
     - pip install coverage
     
