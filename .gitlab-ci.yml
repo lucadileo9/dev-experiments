@@ -41,8 +41,6 @@ variables:
 build_job:
   <<: *python_template # Riutilizzo il template definito sopra
   stage: build # specifico che questo job appartiene alla fase di build
-  tags:
-    - saas-linux-medium-amd64
   script: # e dico cosa deve fare questo job
     - echo "Verifico sintassi Python..."
     - python -m py_compile manage.py # Verifica sintassi file principale
@@ -57,9 +55,6 @@ build_job:
 test_django:
   <<: *python_template
   stage: test
-  tags:
-    - saas-linux-medium-amd64
-
   script:
     - echo "🧪 Eseguo test Django con coverage..."
      
@@ -97,9 +92,6 @@ test_django:
 lint_code:
   <<: *python_template
   stage: test
-  tags:
-    - saas-linux-medium-amd64
-
   script:
     - echo "Controllo qualità codice..."
     - pip install flake8
@@ -111,8 +103,6 @@ lint_code:
 # Job 4: Formattazione codice (opzionale)
 format_check:
   <<: *python_template
-  tags:
-    - saas-linux-medium-amd64
   stage: test
   script:
     - pip install black
@@ -123,9 +113,6 @@ format_check:
 security_dependencies:
   <<: *python_template
   stage: security
-  tags:
-    - saas-linux-medium-amd64
-
   script:
     - echo "🔒 Controllo vulnerabilità..."
     - pip install safety
@@ -142,8 +129,6 @@ security_dependencies:
   allow_failure: true
 
 build_docker_image:
-  tags:
-    - saas-linux-medium-amd64
   stage: package
   image: docker:24-dind  # Docker-in-Docker (può buildare immagini Docker)
   services:
