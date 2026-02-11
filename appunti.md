@@ -2561,48 +2561,6 @@ flowchart TD
 
 ---
 
-## Workflow Development
-
-### Opzione A: Development Locale (Windows + SQLite)
-
-```bash
-# Setup iniziale
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt  # Con mysqlclient commentato
-
-# Workflow quotidiano
-python manage.py runserver
-# Browser: http://localhost:8000
-```
-
-**Quando usare**: Sviluppo veloce, modifiche piccole, test immediati.
-
----
-
-### Opzione B: Docker Production-like (Linux + MySQL)
-
-```bash
-# Prima volta: build immagini
-docker-compose build
-
-# Avvio ambiente completo
-docker-compose up
-
-# Browser: http://localhost:8000
-# Django connesso a MySQL in container
-
-# Fermare
-docker-compose down
-
-# Fermare E cancellare dati database
-docker-compose down -v
-```
-
-**Quando usare**: Test con MySQL, verifica migrazioni, simulare production.
-
----
-
 # Guida Pratica al Testing
 
 Questa sezione spiega **passo-passo** come testare l'intero progetto nelle diverse modalità: sviluppo locale, ambiente Docker e deploy in produzione.
@@ -2679,7 +2637,6 @@ docker exec -it newspaper_db mysql -u django -pdjango_password -e "SHOW DATABASE
   - User `django`: password `django_password`
   - User `root`: password `root_password`
   Questo perché nel file `docker-compose.yml` abbiamo definito queste credenziali per MySQL. Mentre nel file `docker-compose.prod.yml` abbiamo usato variabili d'ambiente che vengono iniettate dinamicamente durante il deploy.
-  oR5Jy4DFsss6
 - Ho provato poi a creare due utenti: 
   - User `PROVA1`: password `oR5Jy4DFsss6`
   - User `PROVA2`: password `oR5Jy4DFsss6`
