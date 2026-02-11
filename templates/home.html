@@ -3,6 +3,9 @@
 {% block title %}Home{% endblock title %}
 
 {% block content %}
+<h1>Django Newspaper</h1>
+<p><strong>{{ message }}</strong></p>
+
 {% if user.is_authenticated %}
   Hi {{ user.username }}! You are {{ user.age }} years old.
   <p><a href="{% url 'logout' %}">Log Out</a></p>
