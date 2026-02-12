@@ -94,7 +94,9 @@ test_django_mysql:
   image: python:3.10-slim
   stage: test
   services:
-    - name: mariadb:10.11
+    - name: mysql:8.0
+      alias: mysql
+    
   variables:
     MYSQL_DATABASE: test_blog
     MYSQL_USER: test_django
