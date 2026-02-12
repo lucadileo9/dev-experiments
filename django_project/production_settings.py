@@ -18,8 +18,8 @@ DATABASES = {
         "NAME": os.environ.get("MYSQL_DATABASE", "blog"),
         "USER": os.environ.get("MYSQL_USER", "django"),
         "PASSWORD": os.environ.get("MYSQL_PASSWORD", "django_password"),
-        "HOST": os.environ.get("MYSQL_HOST", "db"),  # Nome servizio Docker
-        "PORT": os.environ.get("MYSQL_PORT", "3306"),
+        "HOST": os.environ.get("MYSQL_HOST"),  # Nome servizio Docker
+        "PORT": os.environ.get("MYSQL_PORT"),
         "OPTIONS": db_options,
     }
 }
