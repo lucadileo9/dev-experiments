@@ -4,23 +4,19 @@ from django_project.settings import *
 # import pymysql
 # pymysql.install_as_MySQLdb()
 
-db_options = {
-    "charset": "utf8mb4",
-}
-
-# SE E SOLO SE siamo in GitLab CI, disabilitiamo la verifica SSL
-if os.environ.get("GITLAB_CI") == "true":
-    db_options["ssl"] = {"disabled": True}
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": os.environ.get("MYSQL_DATABASE", "blog"),
-        "USER": os.environ.get("MYSQL_USER", "django"),
-        "PASSWORD": os.environ.get("MYSQL_PASSWORD", "django_password"),
+        # abbiamo tolto tutti i default per forzare l'uso delle variabili d'ambiente, così da evitare errori di connessione in produzione
+        "NAME": os.environ.get("MYSQL_DATABASE"),
+        "USER": os.environ.get("MYSQL_USER"),
+        "PASSWORD": os.environ.get("MYSQL_PASSWORD"),
         "HOST": os.environ.get("MYSQL_HOST"),  # Nome servizio Docker
         "PORT": os.environ.get("MYSQL_PORT"),
-        "OPTIONS": db_options,
+        "OPTIONS": {
+            "charset": "utf8mb4",
+        },
     }
 }
 

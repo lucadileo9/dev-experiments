@@ -5,13 +5,17 @@ services:
     image: mysql:8.0
     container_name: newspaper_db_prod
     restart: unless-stopped
-    # env_file:
-    #   - .env
-    environment:
-      MYSQL_DATABASE: blog
-      MYSQL_USER: django
-      MYSQL_PASSWORD:
-      MYSQL_ROOT_PASSWORD:
+    env_file:
+      - .env
+    # L'enviroment prima prendeva i valori o dall'ambiente del runner (chiavi senze valore, come MYSQL_PASSWORD) 
+    # o da valori di default messi da me nel file (MYSQL_HOST=db), ma in produzione vogliamo che tutte 
+    # le variabili d'ambiente siano prese dal file .env creato dinamicamente durante il deploy, 
+    # quindi usiamo env_file per caricare tutte le variabili d'ambiente da quel file, e rimuoviamo i valori di default
+    # environment: 
+    #   MYSQL_DATABASE: blog
+    #   MYSQL_USER: django
+    #   MYSQL_PASSWORD:
+    #   MYSQL_ROOT_PASSWORD:
     volumes:
       - mysql_data_prod:/var/lib/mysql
     ports:
@@ -41,16 +45,16 @@ services:
     
     ports:
       - "8001:8000"  # Porta diversa per non confliggere con dev
-    # env_file:
-    #   - .env
-    environment:
-      - DJANGO_SETTINGS_MODULE=django_project.production_settings
-      - MYSQL_DATABASE=blog # lo spazio infame rompeva tutto
-      - MYSQL_USER=django # lo spazio infame rompeva tutto
-      - MYSQL_PASSWORD
-      - MYSQL_HOST=db
-      - MYSQL_PORT=3306
-      - DJANGO_SECRET_KEY
+    env_file:
+      - .env
+    # environment: # RIMOSSO, vedi commento sopra
+    #   - DJANGO_SETTINGS_MODULE=django_project.production_settings
+    #   - MYSQL_DATABASE=blog # lo spazio infame rompeva tutto
+    #   - MYSQL_USER=django # lo spazio infame rompeva tutto
+    #   - MYSQL_PASSWORD
+    #   - MYSQL_HOST=db
+    #   - MYSQL_PORT=3306
+    #   - DJANGO_SECRET_KEY
       
     depends_on:
       db:

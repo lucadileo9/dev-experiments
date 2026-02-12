@@ -184,22 +184,26 @@ deploy_production:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
     
     # Crea file .env da template con variabili GitLab
-    # - echo "📝 Creazione file .env..."
-    # - |
-    #   @"
-    #   DJANGO_SECRET_KEY=$env:DJANGO_SECRET_KEY
-    #   DJANGO_SETTINGS_MODULE=django_project.production_settings
-    #   MYSQL_DATABASE=blog
-    #   MYSQL_USER=django
-    #   MYSQL_PASSWORD=$env:MYSQL_PASSWORD
-    #   MYSQL_ROOT_PASSWORD=$env:MYSQL_ROOT_PASSWORD
-    #   IMAGE_NAME=$env:DEPLOY_IMAGE_NAME
-    #   # --- AGGIUNTE FONDAMENTALI PER POTER USARE SOLO IL FILE ENV ---
-    #   MYSQL_HOST=db
-    #   MYSQL_PORT=3306
-    #   "@ | Out-File -FilePath .env -Encoding UTF8
-    
-    # - echo "✅ File .env creato"
+    - echo "📝 Creazione file .env..."
+    - |
+      @"
+      DJANGO_SECRET_KEY=$env:DJANGO_SECRET_KEY
+      DJANGO_SETTINGS_MODULE=django_project.production_settings
+      
+      # Configurazione Database
+      MYSQL_DATABASE=blog
+      MYSQL_USER=django
+      MYSQL_PASSWORD=$env:MYSQL_PASSWORD
+      MYSQL_ROOT_PASSWORD=$env:MYSQL_ROOT_PASSWORD
+      MYSQL_HOST=db
+      MYSQL_PORT=3306
+      
+      # Variabile usata solo dal docker-compose per il nome immagine
+      IMAGE_NAME=$env:DEPLOY_IMAGE_NAME
+
+      "@ | Out-File -FilePath .env -Encoding UTF8
+
+    - echo "✅ File .env creato"
   
   script:
     - echo "🐳 Pull immagine da registry..."
