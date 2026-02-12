@@ -102,6 +102,7 @@ test_django_mysql:
     MYSQL_PASSWORD: test_password
     MYSQL_ROOT_PASSWORD: root_test_password
     MYSQL_HOST: mysql
+    MYSQL_ROOT_HOST: '%'  # ← Permetti connessioni da qualsiasi IP
     # Override Django settings per usare MySQL
     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
   before_script:
