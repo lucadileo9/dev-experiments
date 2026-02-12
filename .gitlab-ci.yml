@@ -214,6 +214,9 @@ deploy_production:
     
     - echo "📊 Container in esecuzione:"
     - docker ps --filter "name=newspaper"
+
+    - echo "🔍 VERIFICA VARIABILI DENTRO IL CONTAINER:"
+    - docker exec newspaper_web_prod env
   
   after_script:
     - echo "🧹 Cleanup file .env (sicurezza)..."
