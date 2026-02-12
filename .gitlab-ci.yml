@@ -94,7 +94,7 @@ test_django_mysql:
   image: python:3.10-slim
   stage: test
   services:
-    - name: mysql:5.7
+    - name: mysql:8.0
       alias: mysql
     
   variables:
@@ -109,7 +109,7 @@ test_django_mysql:
     - echo "🗄️ Setup Environment..."
     - apt-get update -qq
     # Installiamo default-mysql-client per poter lanciare comandi SQL di fix
-    - apt-get install -y -qq gcc python3-dev default-libmysqlclient-dev pkg-config default-mysql-client
+    - apt-get install -y -qq gcc python3-dev net-tools mysql-client libmysqlclient-dev
     
     - pip install --upgrade pip
     - pip install -r requirements.txt
@@ -143,6 +143,9 @@ test_django_mysql:
 
   script:
     - echo "🧪 Eseguo migrazioni e test..."
+    - echo "GRANT ALL on *.* to '${MYSQL_USER}';"| mysql -u root --password="${MYSQL_ROOT_PASSWORD}" -h mysql
+
+
     - python manage.py migrate --noinput
     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
     - coverage report
