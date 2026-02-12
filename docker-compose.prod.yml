@@ -35,8 +35,8 @@ services:
     container_name: newspaper_web_prod
     command: >
       sh -c "python manage.py migrate &&
-             uwsgi --ini uwsgi.ini"
-    
+            python manage.py collectstatic --noinput &&
+            uwsgi --ini uwsgi.ini"    
     # Contrariamente alla versione di sviluppo non abbiamo:
     # volumes:
     #   - .:/app  ← RIMOSSO
