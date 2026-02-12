@@ -109,7 +109,7 @@ test_django_mysql:
     - echo "🗄️ Setup Environment..."
     - apt-get update -qq
     # Installiamo default-mysql-client per poter lanciare comandi SQL di fix
-    - apt-get install -y -qq gcc python3-dev net-tools mysql-client libmysqlclient-dev
+    - apt-get install -y -qq gcc python3-dev net-tools default-mysql-client default-libmysqlclient-dev
     
     - pip install --upgrade pip
     - pip install -r requirements.txt
