@@ -96,6 +96,7 @@ test_django_mysql:
   services:
     - name: mysql:8.0
       alias: mysql
+      command: ["--default-authentication-plugin=mysql_native_password"]
     
   variables:
     MYSQL_DATABASE: test_blog
@@ -137,15 +138,19 @@ test_django_mysql:
       print(f'------------------')
       "
 
-    - echo "⏳ Attendo MySQL..."
-    - sleep 15 
 
 
   script:
-    - echo "🧪 Eseguo migrazioni e test..."
-    - echo "GRANT ALL ON *.* TO '${MYSQL_USER}'@'%';" | mysql -u root --password="${MYSQL_ROOT_PASSWORD}" -h mysql --skip-ssl
-
+    - echo "🧪 Verifica connessione e migrazioni..."
+    # Aspetta finché l'utente test_django non riesce a connettersi
+    - |
+      until mysql -h mysql -u "${MYSQL_USER}" -p"${MYSQL_PASSWORD}" -e "SELECT 1" --skip-ssl &> /dev/null; do
+        echo "Database non pronto... attendo 2 secondi"
+        sleep 2
+      done
+    - echo "✅ Database pronto! Eseguo migrazioni..."
     - python manage.py migrate --noinput
+    - python manage.py test accounts articles pages --verbosity=2    
     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
     - coverage report
   coverage: '/TOTAL.*\s+(\d+%)$/'
