@@ -113,7 +113,7 @@ test_django_mysql:
     - pip install coverage
     # Attendi che MySQL sia pronto
     - echo "⏳ Attendo MySQL..."
-    - sleep 10
+    - sleep 30
   script:
     - echo "🧪 Eseguo test Django con MySQL..."
     - python manage.py migrate --noinput
@@ -129,7 +129,6 @@ test_django_mysql:
     expire_in: 30 days
   dependencies:
     - build_job
-  allow_failure: true  # Non blocca se fallisce, è sperimentale
 
 # Job 3: Linting (opzionale ma consigliato)
 lint_code:
