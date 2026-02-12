@@ -1240,6 +1240,39 @@ sequenceDiagram
     Note over Dev,Worker: ⚡ Totale: <1 sec<br/>No container rebuild needed
 ```
 
+#### ⚙️ Approfondimento: Template Auto-reload vs Python Code Auto-reload
+
+Un aspetto critico dello sviluppo Django riguarda il comportamento di auto-reload:
+
+**Django Template Auto-reload (Built-in)**:
+- Django ricarica **automaticamente** i file template (`.html`) modificati
+- Non richiede configurazione: funziona out-of-the-box con `DEBUG=True`
+- Modifichi `home.html` → Refresh browser → Vedi cambiamenti
+
+**Python Code Auto-reload (Richiede Configurazione)**:
+- Modifiche a file `.py` (views, models, settings) **NON** vengono ricaricate automaticamente da uWSGI
+- Senza configurazione: devi riavviare manualmente il server (`docker-compose restart web`)
+- Con `pyreload = 2` in `uwsgi.ini`: uWSGI monitora i file Python e ricarica worker quando cambiano
+
+**Configurazione attuale in `uwsgi.ini`**:
+
+```ini
+pyreload = 2
+# Monitora ogni 2 secondi i file Python per cambiamenti
+# Se detect modifica → graceful reload worker
+# ESSENZIALE per development con bind mount
+# DISABILITARE in production (overhead monitoring)
+```
+
+**Test pratico della differenza**:
+
+1. Modifica `templates/home.html` (aggiungi `<h1>Test</h1>`) → **Reload automatico**
+2. Modifica `pages/views.py` (cambia variabile in context) → **Richiede pyreload**
+
+Senza `pyreload = 2`, la modifica (2) non sarebbe visibile fino a restart completo del container.
+
+**Nota**: In precedenza si usava `py-autoreload = 1` (sintassi deprecata). La sintassi corretta moderna è `pyreload = <secondi>`, dove il numero indica l'intervallo di polling.
+
 ---
 
 ### File Modificati
@@ -1647,6 +1680,154 @@ if 'test' in sys.argv:
 | Test | `format_check` | ~10s | ❌ Blocca |
 | Test | `lint_flake8` | ~5s | ⚠️ Warning |
 | Security | `security_dependencies` | ~15s | ⚠️ Warning |
+
+---
+
+## 🔄 Update: Dual Database Testing Strategy
+
+### Contesto e Motivazione
+
+Dopo l'implementazione iniziale della pipeline CI con SQLite (vedi "Problema 1: MySQL in CI Troppo Complesso"), è emersa l'**impossibilità di scegliere definitivamente quale approccio fosse migliore** tra:
+
+1. **SQLite in-memory**: Veloce (~30s), zero configurazione, ma diverso da produzione
+2. **MySQL in CI**: Identico a produzione, ma complesso e lento (~60-90s)
+
+Entrambi gli approcci hanno vantaggi e svantaggi legittimi:
+
+| Aspetto | SQLite | MySQL |
+|---------|--------|-------|
+| **Velocità** | ✅ Molto veloce (~30s) | ❌ Più lento (~60-90s) |
+| **Setup** | ✅ Zero configurazione | ❌ Service container necessario |
+| **Fedeltà Produzione** | ❌ Differente (in-memory vs persistente) | ✅ Identico a produzione |
+| **SQL Features** | ❌ Subset limitato SQL | ✅ Full MySQL features |
+| **Debugging** | ✅ Facile (log semplici) | ❌ Complesso (multi-container) |
+
+### Soluzione: Approccio Dual-Database
+
+Anziché scegliere, implementiamo **ENTRAMBI** i test:
+
+```yaml
+test_django:  # SQLite (esistente)
+  stage: test
+  script:
+    - python manage.py test  # Usa SQLite in-memory (settings.py default)
+  # Veloce, blocca pipeline
+
+test_django_mysql:  # MySQL (nuovo)
+  stage: test
+  services:
+    - mysql:8.0
+  variables:
+    MYSQL_HOST: mysql
+    MYSQL_DATABASE: test_blog
+    MYSQL_USER: test_user
+    MYSQL_PASSWORD: test_password
+    MYSQL_ROOT_PASSWORD: root_password
+  script:
+    - apt-get update && apt-get install -y default-libmysqlclient-dev pkg-config
+    - pip install mysqlclient
+    - python manage.py test
+  allow_failure: true  # ⚠️ Non blocca pipeline se fallisce
+```
+
+### Workflow della Pipeline con Dual Testing
+
+```mermaid
+flowchart TD
+    A[🚀 Git Push] --> B[📦 build_check]
+    B --> C{Stage: Test}
+    
+    C --> D[🧪 test_django<br/>SQLite in-memory<br/>~30s]
+    C --> E[🧪 test_django_mysql<br/>MySQL 8.0<br/>~60-90s]
+    C --> F[⬛ format_check]
+    C --> G[📏 lint_flake8]
+    
+    D --> H{Risultato}
+    E --> I{Risultato}
+    F --> H
+    G --> H
+    
+    H -->|✅ Tutti OK| J[🔒 security_dependencies]
+    I -->|⚠️ Warning| J
+    I -->|❌ Fallito| K[⚠️ Pipeline procede<br/>allow_failure:true]
+    K --> J
+    
+    J --> L[✅ Pipeline completata]
+    
+    style D fill:#90EE90
+    style E fill:#FFD700
+    style I fill:#FFA500
+```
+
+### Perché `allow_failure: true` su MySQL?
+
+Il job MySQL è configurato con `allow_failure: true` per questi motivi:
+
+1. **Non blocca sviluppo**: Il test SQLite (veloce e affidabile) rimane il gate principale
+2. **MySQL service instabile**: GitLab shared runners hanno occasionali timeout MySQL (~5-10% failure rate)
+3. **Debugging complesso**: Fallimenti MySQL sono spesso infrastrutturali (runner busy, network latency), non errori codice
+4. **Valore incrementale**: MySQL test aggiunge **confidence** ma non è critico per ogni commit
+
+**Strategia**: 
+- ✅ SQLite BLOCCA → Fast feedback loop
+- ⚠️ MySQL WARNING → Additional verification, ma non blocca workflow developer
+
+### Benefici dell'Approccio Dual
+
+1. **Fast feedback**: SQLite fallisce in 30s → Developer sa subito se ha rotto qualcosa
+2. **Production confidence**: MySQL test verifica che non ci siano quirk SQL specifici
+3. **Flessibilità**: Se MySQL diventa stabile, basta rimuovere `allow_failure: true`
+4. **Documentazione**: Presenza di entrambi i job dimostra consapevolezza dei trade-off
+
+### Configurazione MySQL Service in CI
+
+GitLab CI crea automaticamente un container MySQL accessibile via hostname `mysql`:
+
+```yaml
+services:
+  - mysql:8.0  # GitLab lancia container mysql:8.0
+
+variables:
+  MYSQL_HOST: mysql  # Django si connette a hostname "mysql" (Docker DNS)
+  MYSQL_DATABASE: test_blog
+  MYSQL_USER: test_user
+  MYSQL_PASSWORD: test_password
+  MYSQL_ROOT_PASSWORD: root_password  # Richiesto da MySQL image
+```
+
+**Come funziona**:
+
+1. GitLab crea network interno tra job container e service container
+2. MySQL container espone port 3306 su hostname `mysql`
+3. Django legge `MYSQL_HOST=mysql` da env variables
+4. Connessione: `django_container` → `mysql:3306` → `mysql_container`
+
+**Installazione client MySQL**:
+
+```bash
+apt-get update && apt-get install -y default-libmysqlclient-dev pkg-config
+pip install mysqlclient
+```
+
+Necessario perché l'image Python base non ha le librerie MySQL. In produzione queste sono già installate nel Dockerfile.
+
+### Quando Usare Dual Testing?
+
+Questa strategia è utile quando:
+
+- ✅ **Database produzione diverso da dev**: MySQL/PostgreSQL in prod, SQLite in dev
+- ✅ **CI runners instabili**: Service containers hanno failure rate >5%
+- ✅ **Team velocity importante**: Non vuoi bloccare merge per timeout infrastrutturali
+- ✅ **SQL dialect differences**: Query che funzionano in SQLite ma falliscono in MySQL
+
+**Esempio pratico di SQL difference**:
+
+SQLite accetta:
+```python
+User.objects.filter(created_at__year=2024)  # OK in SQLite
+```
+
+MySQL 8.0 con strict mode potrebbe fallire su certi edge case timezone. Il dual test cattura questi problemi.
 
 **Tempo totale pipeline**: ~1m 20s
 
@@ -3028,3 +3209,18 @@ docker system prune -a --volumes
 ---
 
 **Fine documentazione** - Ultimo aggiornamento: 03 Febbraio 2026
+
+```mermaid
+graph TB
+    subgraph Piramide["🔺 PIRAMIDE DEI TEST"]
+        E2E["E2E Tests<br/>❌ Lenti (minuti)<br/>❌ Fragili<br/>✅ Testano tutto insieme"]
+        INT["Integration Tests<br/>⚠️ Moderati (10-30s)<br/>⚠️ Setup complesso<br/>✅ Testano interazioni"]
+        UNIT["Unit Tests<br/>✅ Veloci (millisecondi)<br/>✅ Affidabili<br/>❌ Testano singola logica"]
+    end
+    
+    E2E --> INT --> UNIT
+    
+    style UNIT fill:#90EE90
+    style INT fill:#FFD700
+    style E2E fill:#FF6B6B
+```
