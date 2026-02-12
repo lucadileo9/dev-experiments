@@ -24,6 +24,7 @@
      - [Runner](#124-runner)
      - [Variabili d'Ambiente CI/CD](#125-variabili-dambiente-cicd)
      - [Keywords del File `.gitlab-ci.yml`](#126-keywords-del-file-gitlab-ciyml)
+     - [Flusso Environment Variables: GitLab → Docker → Django](#127-flusso-environment-variables-gitlab--docker--django)
    - [1.3 Pre-commit: Automazione Locale](#13-pre-commit-automazione-locale)
      - [Cos'è e Perché Usarlo](#131-cosa-è-e-perché-usarlo)
      - [Come Funziona](#132-come-funziona)
@@ -512,37 +513,8 @@ Le **variabili d'ambiente** sono fondamentali nelle pipeline CI/CD per:
 - **Configurare** il comportamento dei job senza modificare il codice
 - **Gestire secrets** (password, API keys) in modo sicuro
 - **Parametrizzare** build e deployment per ambienti diversi
+Tali variabili d'ambiente possono essere sia fornite da GitLab (predefinite) che definite da noi (personalizzate).
 
-#### Tipi di Variabili
-
-```mermaid
-flowchart TD
-    subgraph Predefined["📦 Variabili GitLab Predefinite"]
-        CI1["CI_COMMIT_SHA<br/>SHA completo commit"]
-        CI2["CI_COMMIT_SHORT_SHA<br/>SHA abbreviato (8 char)"]
-        CI3["CI_REGISTRY<br/>URL registry GitLab"]
-        CI4["CI_REGISTRY_IMAGE<br/>Path completo immagine"]
-        CI5["CI_REGISTRY_USER<br/>Username per login"]
-        CI6["CI_REGISTRY_PASSWORD<br/>Token autenticazione"]
-    end
-    
-    subgraph Custom["⚙️ Variabili Custom"]
-        subgraph YAML["Definite in .gitlab-ci.yml"]
-            Y1["IMAGE_TAG"]
-            Y2["DJANGO_SETTINGS_MODULE"]
-        end
-        
-        subgraph UI["Definite in GitLab UI"]
-            U1["🔒 MYSQL_PASSWORD"]
-            U2["🔒 DJANGO_SECRET_KEY"]
-            U3["🔒 MYSQL_ROOT_PASSWORD"]
-        end
-    end
-    
-    Predefined -->|"Sempre disponibili"| Jobs["Tutti i Job"]
-    YAML -->|"Sempre disponibili"| Jobs
-    UI -->|"Dipende da flags"| Jobs
-```
 
 #### Variabili GitLab Predefinite (CI_*)
 
@@ -560,55 +532,6 @@ GitLab fornisce automaticamente variabili che iniziano con `CI_`. Le più import
 | `CI_PIPELINE_ID` | `123456789` | ID univoco della pipeline | Debugging |
 | `CI_JOB_ID` | `987654321` | ID univoco del job | Artifacts naming |
 
-#### Variabili Custom nel YAML
-
-Definite nella sezione `variables:` del file `.gitlab-ci.yml`:
-
-```yaml
-variables:
-  # Variabili semplici
-  DJANGO_SETTINGS_MODULE: "django_project.settings"
-  DEBIAN_FRONTEND: "noninteractive"
-  
-  # Variabili calcolate (usano altre variabili)
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
-```
-
-**Scope**: Disponibili in **tutti i job** della pipeline.
-
-#### Variabili Segrete (GitLab UI)
-
-Per **secrets** come password e API keys, si definiscono in GitLab UI:
-
-```
-GitLab → Settings → CI/CD → Variables → Add variable
-```
-
-| Flag | Descrizione | Quando Usare |
-|------|-------------|---------------|
-| **Protected** | Variabile disponibile SOLO su branch protetti | Secrets di produzione |
-| **Masked** | Valore nascosto nei log (mostra `[MASKED]`) | Password, tokens |
-| **Expand variable** | Permette riferimenti `$VAR` nel valore | Variabili composte |
-
-```mermaid
-flowchart LR
-    subgraph Protected["🔒 Protected Variable"]
-        P1["MYSQL_PASSWORD=secret123"]
-    end
-    
-    subgraph Branches["Branch"]
-        B1["✅ main (protected)"]
-        B2["✅ production (protected)"]
-        B3["❌ feature-x (NOT protected)"]
-    end
-    
-    P1 -->|"Accessibile"| B1
-    P1 -->|"Accessibile"| B2
-    P1 -.->|"❌ Non accessibile"| B3
-    
-    Note["💡 Protected variables = Security<br/>Solo branch fidati accedono ai secrets"]
-```
 
 #### Variabili nel Nostro Progetto
 
@@ -634,24 +557,173 @@ flowchart LR
 
 N.B.: in un secondo momento ho dovuto passare a non protected perché altrimenti non venivano iniettate, tuttavia una soluzione alternativa sarebbe stata segnare i branch come protected.
 
-#### Accesso alle Variabili negli Script
 
-**Linux/Bash** (Shared Runner):
-```bash
-echo "Commit: $CI_COMMIT_SHORT_SHA"
-echo "Registry: $CI_REGISTRY"
-docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+La cosa più importante è la gestione delle **variabili d'ambiente** in un progetto CI/CD con Docker. Le variabili d'ambiente devono attraversare diverse "stazioni" prima di arrivare al codice applicativo, e ogni passaggio deve essere configurato correttamente.
+
+#### Il Problema della "Staffetta"
+
+Immagina le variabili d'ambiente come una **staffetta**: i dati sensibili (password, secret key) devono passare di mano in mano da GitLab fino al codice Django, attraversando:
+
+1. **GitLab Settings (CI/CD)** → Sorgente della verità (variabili protette/mascherate)
+2. **GitLab Runner** → Riceve le variabili come environment variables del sistema operativo
+3. **File `.env`** → Il "ponte" fisico creato dallo script della pipeline
+4. **Docker Compose** → Legge il file `.env` e inietta le variabili nei container
+5. **Codice (Django/MySQL)** → Legge `os.environ` e si configura
+
+```mermaid
+sequenceDiagram
+    participant GL as ☁️ GitLab Settings<br/>(CI/CD Variables)
+    participant Runner as 🖥️ GitLab Runner<br/>(Windows/Linux)
+    participant Script as 📝 Pipeline Script<br/>before_script
+    participant EnvFile as 📄 File .env<br/>(Temporaneo)
+    participant DC as 🐳 Docker Compose<br/>prod.yml
+    participant Container as 📦 Container<br/>(web/db)
+    participant Django as 🐍 Django Code<br/>settings.py
+    
+    GL->>Runner: 1️⃣ Inietta variabili<br/>MYSQL_PASSWORD=xyz<br/>DJANGO_SECRET_KEY=abc
+    Runner->>Script: 2️⃣ Variabili disponibili<br/>$env:MYSQL_PASSWORD
+    
+    Script->>EnvFile: 3️⃣ Crea file .env<br/>MYSQL_PASSWORD=xyz<br/>MYSQL_HOST=db
+    
+    EnvFile->>DC: 4️⃣ docker-compose legge<br/>env_file: .env
+    
+    DC->>Container: 5️⃣ Inietta nel container<br/>environment variables
+    
+    Container->>Django: 6️⃣ os.environ.get()<br/>MYSQL_PASSWORD → 'xyz'
+    
+    Note over Script,EnvFile: ⚠️ PUNTO CRITICO:<br/>File .env eliminato in after_script
+    
+    Note over GL,Django: 🔒 Mai salvato in Git<br/>Esiste solo durante deploy
 ```
 
-**Windows/PowerShell** (Self-Hosted Runner):
-```powershell
-echo "Commit: $env:CI_COMMIT_SHORT_SHA"
-echo "Registry: $env:CI_REGISTRY"
-docker login -u $env:CI_REGISTRY_USER -p $env:CI_REGISTRY_PASSWORD $env:CI_REGISTRY
+#### Metodi di Iniezione Variabili in Docker Compose
+
+Docker Compose offre due metodi principali per passare variabili d'ambiente ai container:
+
+**Metodo A - `env_file` (Carico in Blocco)**:
+
+```yaml
+services:
+  web:
+    env_file:
+      - .env  # Carica TUTTO il file .env nel container
 ```
 
-**Nota importante**: Su PowerShell le variabili d'ambiente si accedono con `$env:NOME_VARIABILE`, non `$NOME_VARIABILE`.
+**Pro**: Pulito, facile da mantenere, un'unica fonte di verità  
+**Contro**: I nomi delle variabili nel `.env` devono coincidere esattamente con quelli attesi dal software
 
+**Metodo B - `environment` Esplicito (Lista della Spesa)**:
+
+```yaml
+services:
+  web:
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}  # Legge da .env ma può rinominare
+      - DJANGO_SECRET_KEY=${SECRET_KEY}  # Può mappare SECRET_KEY → DJANGO_SECRET_KEY
+```
+
+**Pro**: Controllo totale, puoi rinominare variabili al volo  
+**Contro**: Verboso, facile dimenticare pezzi
+
+**Nel nostro progetto**: Usiamo un **ibrido** (creazione file `.env` + `env_file`) per massima affidabilità su Windows.
+
+#### Best Practices: Fail-Fast vs Fallback
+
+Una delle lezioni più importanti apprese riguarda l'uso dei **valori di default** nelle variabili d'ambiente:
+
+```yaml
+# ❌ PERICOLOSO in Produzione
+environment:
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-django_password}  # Fallback silenzioso
+  DJANGO_SECRET_KEY: ${SECRET_KEY:-change-me}         # Vulnerabilità nascosta!
+```
+
+**Problema**: Se dimentichi di settare la variabile in GitLab, il sistema usa silenziosamente il default. In produzione questo significa:
+- Password debole `django_password` → Database facilmente violabile
+- Secret key di default → Sessioni Django compromesse
+- **Nessun errore** → Non sai di avere un problema!
+
+```yaml
+# ✅ CORRETTO in Produzione  
+environment:
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD}  # NO fallback
+  DJANGO_SECRET_KEY: ${SECRET_KEY}   # Crash se manca → Meglio!
+```
+
+**Filosofia Fail-Fast**: Se manca una variabile critica, il sistema deve **crashare immediatamente all'avvio** urlando l'errore. È molto meglio di un deploy silenzioso con vulnerabilità.
+
+#### Configurazione Finale nel Nostro Progetto
+
+**1. GitLab Settings → CI/CD → Variables**:
+
+| Key | Value | Protected | Masked |
+|-----|-------|-----------|--------|
+| `DJANGO_SECRET_KEY` | `django-insecure-prod-xyz...` | ☐ No | ☑️ Sì |
+| `MYSQL_PASSWORD` | `StrongPass123!` | ☐ No | ☑️ Sì |
+| `MYSQL_ROOT_PASSWORD` | `RootPass456!` | ☐ No | ☑️ Sì |
+| `DEPLOY_IMAGE_NAME` | `registry.gitlab.com/.../cloudedgecomputing:latest` | ☐ No | ☐ No |
+
+**2. Script Pipeline (`.gitlab-ci.yml`)** - Generazione file `.env`:
+
+```yaml
+deploy_production:
+  before_script:
+    - |
+      @"
+      DJANGO_SECRET_KEY=$env:DJANGO_SECRET_KEY
+      DJANGO_SETTINGS_MODULE=django_project.production_settings
+      MYSQL_DATABASE=blog
+      MYSQL_USER=django
+      MYSQL_PASSWORD=$env:MYSQL_PASSWORD
+      MYSQL_ROOT_PASSWORD=$env:MYSQL_ROOT_PASSWORD
+      MYSQL_HOST=db
+      MYSQL_PORT=3306
+      IMAGE_NAME=$env:DEPLOY_IMAGE_NAME
+      "@ | Out-File -FilePath .env -Encoding UTF8
+  
+  after_script:
+    - Remove-Item .env -ErrorAction SilentlyContinue  # Sicurezza!
+```
+
+**3. Docker Compose (`docker-compose.prod.yml`)** - Caricamento pulito:
+
+```yaml
+services:
+  db:
+    image: mysql:8.0
+    env_file:
+      - .env  # Carica TUTTO (no mapping esplicito)
+  
+  web:
+    image: ${IMAGE_NAME}  # Letta automaticamente da .env
+    env_file:
+      - .env
+```
+
+**4. Django (`production_settings.py`)** - Lettura fail-fast:
+
+```python
+import os
+import environ
+
+env = environ.Env()
+
+# ❌ NO DEFAULT - Crash se manca
+SECRET_KEY = env('DJANGO_SECRET_KEY')  # raise ImproperlyConfigured se assente
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('MYSQL_DATABASE'),
+        'USER': env('MYSQL_USER'),
+        'PASSWORD': env('MYSQL_PASSWORD'),  # NO default!
+        'HOST': env('MYSQL_HOST'),
+        'PORT': env('MYSQL_PORT'),
+    }
+}
+```
 ---
 
 ### 1.2.6 Keywords del File `.gitlab-ci.yml`
@@ -739,7 +811,6 @@ lint_flake8:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 ```
-
 ---
 
 ## 1.3 Pre-commit: Automazione Locale
@@ -2474,6 +2545,213 @@ GitLab → Settings → Repository → Protected Branches
 Ora branch protetto → Protected variables disponibili ✅
 ```
 
+---
+
+### 🔴 Problema 5: Confusione Gestione Environment Variables (.env + Fallback + Spazi YAML)
+
+**Sintomo**:
+Deploy che sembravano funzionare localmente ma fallivano in CI, o viceversa. Errori misteriosi:
+```
+ERROR 1045 (28000): Access denied for user 'django'@'localhost'
+```
+Contemporaneamente, test manuali con `docker exec` mostravano che la password era corretta, creando confusione totale.
+
+**Causa Root**: **Mancanza di comprensione del flusso completo GitLab → Runner → .env → Docker → Django**, aggravata da tre problemi specifici:
+
+1. **Sintassi YAML sensibile agli spazi**: Un singolo spazio extra dopo `:` o `=` cambia il valore della variabile
+2. **Fallback che nascondono errori**: `${VAR:-default}` usava password deboli quando la variabile era vuota
+3. **Metodi di iniezione inconsistenti**: Mix tra `env_file` e `environment` creava ambiguità
+
+**Dettaglio Problema**:
+
+```
+━━━ SCENARIO 1: Lo Spazio Infame ━━━
+
+1. Developer edita docker-compose.prod.yml manualmente:
+   environment:
+     MYSQL_DATABASE: blog   ← SPAZIO EXTRA dopo ":"
+   
+2. YAML parser interpreta:
+   MYSQL_DATABASE = " blog"   ← Stringa CON spazio iniziale!
+   
+3. Docker inietta nel container:
+   Container ENV: MYSQL_DATABASE=" blog"
+   
+4. MySQL cerca database " blog" (con spazio):
+   ❌ Database inesistente → Connection refused
+   
+5. Django prova a connettersi:
+   ❌ Access denied (database non trovato)
+
+━━━ SCENARIO 2: Il Fallback Silenzioso ━━━
+
+1. GitLab Variables non configurate o branch non protetto:
+   $env:MYSQL_PASSWORD = $null  ← Variabile VUOTA
+   
+2. Script pipeline genera .env:
+   MYSQL_PASSWORD=   ← Riga vuota!
+   
+3. docker-compose legge con fallback:
+   MYSQL_PASSWORD: ${MYSQL_PASSWORD:-django_password}
+   
+4. Valore finale nel container:
+   MYSQL_PASSWORD="django_password"  ← Default DEBOLE!
+   
+5. MySQL inizializza con password debole:
+   ✅ Deploy apparentemente OK
+   ❌ VULNERABILITÀ NASCOSTA (nessun errore visibile)
+```
+
+**Soluzione - Configurazione "Zero Ambiguity"**:
+
+Eliminare TUTTE le fonti di ambiguità con una configurazione pulita, fail-fast e centralizzata.
+
+#### 1. GitLab UI - Single Source of Truth
+
+```
+Settings → CI/CD → Variables
+
+✅ DJANGO_SECRET_KEY           Value: django-insecure-prod-...    Masked: ☑️  Protected: ☐
+✅ MYSQL_PASSWORD               Value: StrongPassword123!          Masked: ☑️  Protected: ☐
+✅ MYSQL_ROOT_PASSWORD          Value: RootPassword456!            Masked: ☑️  Protected: ☐  
+✅ DEPLOY_IMAGE_NAME            Value: registry.gitlab.com/...     Masked: ☐  Protected: ☐
+
+⚠️ IMPORTANTE: Protected: ☐ UNCHECKED
+   → Variabili disponibili su TUTTI i branch (anche non protetti)
+   → Se checked, solo branch protetti (main/production) ricevono variabili
+```
+
+#### 2. Pipeline Script - Generatore .env Centralizzato
+
+Il file `.env` viene generato **completamente** dallo script, includendo sia segreti (da GitLab) che configurazioni fisse (HOST, PORT).
+
+```yaml
+# .gitlab-ci.yml
+deploy_production:
+  stage: deploy
+  tags:
+    - windows
+  before_script:
+    - echo "📝 Generazione file .env completo..."
+    
+    # NOTA BENE: NESSUNO spazio attorno all'uguale!
+    # Here-String PowerShell garantisce sintassi precisa
+    - echo "📝 Creazione file .env..."
+    - |
+      @"
+      DJANGO_SECRET_KEY=$env:DJANGO_SECRET_KEY
+      DJANGO_SETTINGS_MODULE=django_project.production_settings
+      
+      # Configurazione Database
+      MYSQL_DATABASE=blog
+      MYSQL_USER=django
+      MYSQL_PASSWORD=$env:MYSQL_PASSWORD
+      MYSQL_ROOT_PASSWORD=$env:MYSQL_ROOT_PASSWORD
+      MYSQL_HOST=db
+      MYSQL_PORT=3306
+      
+      # Variabile usata solo dal docker-compose per il nome immagine
+      IMAGE_NAME=$env:DEPLOY_IMAGE_NAME
+
+      "@ | Out-File -FilePath .env -Encoding UTF8
+
+    - echo "✅ File .env creato"
+
+... il resto rimane uguale
+```
+
+#### 3. Docker Compose - Consumatore Pulito (NO Fallback)
+
+```yaml
+# docker-compose.prod.yml
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: newspaper_db_prod
+    restart: unless-stopped
+    
+    # ✅ SOLO env_file, ZERO fallback
+    env_file:
+      - .env
+    
+    # ❌ RIMOSSO environment: con fallback pericolosi
+    # environment:
+    #   MYSQL_PASSWORD: ${MYSQL_PASSWORD:-django_password}  ← ELIMINATO!
+    ... il resto uguale
+    
+  web:
+    # Docker Compose legge IMAGE_NAME automaticamente da .env
+    image: ${IMAGE_NAME}
+    
+    container_name: newspaper_web_prod
+    command: >
+      sh -c "python manage.py migrate &&
+             uwsgi --ini uwsgi.ini"
+    
+    ports:
+      - "8001:8000"
+    
+    # ✅ SOLO env_file
+    env_file:
+      - .env
+    
+    # ❌ RIMOSSO environment: esplicito
+    # (tutto caricato da .env, zero duplicazione)
+    
+... il resto rimane uguale
+```
+
+**Filosofia**:
+- **Una sola fonte**: File `.env` (generato dalla CI)
+- **Zero fallback**: Se manca variabile → Docker Compose fallisce con errore chiaro
+- **Fail-fast**: Meglio errore evidente che deploy vulnerabile silenzioso
+
+#### 4. Django Settings - Validazione Fail-Fast
+
+```python
+# django_project/production_settings.py
+import os
+import environ
+
+env = environ.Env()
+
+# ❌ NO DEFAULT - Crash se variabile manca
+SECRET_KEY = env('DJANGO_SECRET_KEY')  # raise ImproperlyConfigured
+
+DEBUG = False  # SEMPRE False in production
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': env('MYSQL_DATABASE'),       # NO fallback
+        'USER': env('MYSQL_USER'),           # NO fallback  
+        'PASSWORD': env('MYSQL_PASSWORD'),   # NO fallback
+        'HOST': env('MYSQL_HOST'),           # NO fallback
+        'PORT': env('MYSQL_PORT'),           # NO fallback
+    }
+}
+```
+
+**Se variabile manca**: Django crasha all'avvio con `django.core.exceptions.ImproperlyConfigured: Set the MYSQL_PASSWORD environment variable`.
+
+**Questo è VOLUTO**: Meglio crash immediato che produzione con password di default.
+
+#### Perché Questa Configurazione è Ottimale?
+
+| Aspetto | Vecchio Approccio ❌ | Nuovo Approccio ✅ |
+|---------|----------------------|---------------------|
+| **Sorgente variabili** | Mix (.env + hardcoded + fallback) | Solo .env generato da CI |
+| **Fallback produzione** | `${VAR:-default}` nasconde errori | NO fallback → crash se manca |
+| **Sintassi YAML** | Editing manuale (spazi random) | Script PowerShell controllato |
+| **Metodo iniezione** | Mix env_file + environment | Solo env_file (pulito) |
+| **Sicurezza .env** | Rischio commit accidentale | Generato + eliminato in CI |
+| **Single Source** | Cambi in 3+ file | Cambi solo in GitLab Variables |
+| **Debugging** | Ambiguo (quale valore vince?) | Chiaro (tutto da .env) |
+
+---
+
 ## Risultato Fase 4 Completa
 
 ✅ **Step 1**: Separazione Dev/Prod con docker-compose dedicati  
@@ -2550,9 +2828,9 @@ flowchart TD
         CI_TEST --> CI_LINT["Lint"]
         CI_LINT --> CI_FORMAT["Format Check"]
         CI_FORMAT --> CI_SEC["Security Scan"]
-        CI_SEC --> REG_LOGIN[Login Registry]
-
+        
         subgraph PackageJob["Job: build_docker_image"]
+            CI_SEC --> REG_LOGIN[Login Registry]
             REG_LOGIN --> DK_BUILD[docker build]
             DK_BUILD --> DK_PUSH_SHA[docker push :sha]
             DK_PUSH_SHA --> DK_PUSH_LATEST[docker push :latest]
@@ -2581,7 +2859,7 @@ flowchart TD
     CD_VERIFY --> FINAL_URL["🌐 localhost:8001"]
 
     style S fill: #6440a7, color: #fff
-    style PackageJob fill: #11042a, color: #fff
+    style PackageJob fill: #6440a7, color: #fff
 ```
 
 ---
