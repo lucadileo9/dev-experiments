@@ -143,7 +143,7 @@ test_django_mysql:
 
   script:
     - echo "🧪 Eseguo migrazioni e test..."
-    - echo "GRANT ALL on *.* to '${MYSQL_USER}';"| mysql -u root --password="${MYSQL_ROOT_PASSWORD}" -h mysql
+    - echo "GRANT ALL on *.* to '${MYSQL_USER}';"| mysql -u root --password="${MYSQL_ROOT_PASSWORD}" --ssl-mode=DISABLED -h mysql
 
 
     - python manage.py migrate --noinput
