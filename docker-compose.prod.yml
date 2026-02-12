@@ -45,8 +45,8 @@ services:
     #   - .env
     environment:
       - DJANGO_SETTINGS_MODULE=django_project.production_settings
-      - MYSQL_DATABASE= blog
-      - MYSQL_USER = django
+      - MYSQL_DATABASE=blog # lo spazio infame rompeva tutto
+      - MYSQL_USER=django # lo spazio infame rompeva tutto
       - MYSQL_PASSWORD
       - MYSQL_HOST=db
       - MYSQL_PORT=3306
