@@ -94,7 +94,7 @@ test_django_mysql:
   image: python:3.10-slim
   stage: test
   services:
-    - name: mysql:8.0
+    - name: mysql:5.7
       alias: mysql
     
   variables:
@@ -103,7 +103,6 @@ test_django_mysql:
     MYSQL_PASSWORD: test_password
     MYSQL_ROOT_PASSWORD: root_test_password
     MYSQL_HOST: mysql
-    MYSQL_ROOT_HOST: '%'  # FONDAMENTALE: permette a root di connettersi da remoto (dal container python)
     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
 
   before_script:
@@ -141,11 +140,6 @@ test_django_mysql:
     - echo "⏳ Attendo MySQL..."
     - sleep 15 
 
-    # --- IL FIX DECISIVO ---
-    # Ci colleghiamo come root e forziamo l'utente test_django a usare la vecchia auth
-    - echo "🔧 Fix permessi autenticazione MySQL 8..."
-    - mysql -h mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "ALTER USER 'test_django'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_PASSWORD';"
-    - echo "✅ Fix applicato."
 
   script:
     - echo "🧪 Eseguo migrazioni e test..."
