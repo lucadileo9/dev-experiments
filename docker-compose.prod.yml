@@ -5,13 +5,13 @@ services:
     image: mysql:8.0
     container_name: newspaper_db_prod
     restart: unless-stopped
-    env_file:
-      - .env
-    # environment:
-    #   MYSQL_DATABASE: ${MYSQL_DATABASE:-blog}
-    #   MYSQL_USER: ${MYSQL_USER:-django}
-    #   MYSQL_PASSWORD: ${MYSQL_PASSWORD:-django_password}
-    #   MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+    # env_file:
+    #   - .env
+    environment:
+      MYSQL_DATABASE: blog
+      MYSQL_USER: django
+      MYSQL_PASSWORD:
+      MYSQL_ROOT_PASSWORD:
     volumes:
       - mysql_data_prod:/var/lib/mysql
     ports:
@@ -41,16 +41,17 @@ services:
     
     ports:
       - "8001:8000"  # Porta diversa per non confliggere con dev
-    env_file:
-      - .env
-    # environment:
-    #   - DJANGO_SETTINGS_MODULE=django_project.production_settings
-    #   - MYSQL_DATABASE=${MYSQL_DATABASE:-blog}
-    #   - MYSQL_USER=${MYSQL_USER:-django}
-    #   - MYSQL_PASSWORD=${MYSQL_PASSWORD:-django_password}
-    #   - MYSQL_HOST=db
-    #   - MYSQL_PORT=3306
-    #   - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-change-me-in-production}
+    # env_file:
+    #   - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=django_project.production_settings
+      - MYSQL_DATABASE= blog
+      - MYSQL_USER = django
+      - MYSQL_PASSWORD
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - DJANGO_SECRET_KEY
+      
     depends_on:
       db:
         condition: service_healthy
