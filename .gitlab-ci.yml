@@ -96,31 +96,60 @@ test_django_mysql:
   services:
     - name: mariadb:10.11
   variables:
-    # Configurazione MySQL service
     MYSQL_DATABASE: test_blog
     MYSQL_USER: test_django
     MYSQL_PASSWORD: test_password
     MYSQL_ROOT_PASSWORD: root_test_password
     MYSQL_HOST: mysql
-    # MYSQL_ROOT_HOST: '%'  # ← Permetti connessioni da qualsiasi IP
-    # Override Django settings per usare MySQL
+    MYSQL_ROOT_HOST: '%'  # FONDAMENTALE: permette a root di connettersi da remoto (dal container python)
     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
+
   before_script:
-    - echo "🗄️ Test con MySQL service container..."
+    - echo "🗄️ Setup Environment..."
     - apt-get update -qq
-    - apt-get install -y -qq gcc python3-dev default-libmysqlclient-dev pkg-config
+    # Installiamo default-mysql-client per poter lanciare comandi SQL di fix
+    - apt-get install -y -qq gcc python3-dev default-libmysqlclient-dev pkg-config default-mysql-client
+    
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install coverage
-    # Attendi che MySQL sia pronto
+
+    # DEBUG (Opzionale): Stampa variabili come mostrato sopra
+    # ... inserisci qui lo script python di debug se vuoi ...
+    - echo "🔍 DEBUG CONFIGURAZIONE DJANGO..."
+    - |
+      python -c "
+      import os, django
+      # Setup minimo di Django
+      os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_project.production_settings')
+      django.setup()
+      from django.conf import settings
+      db = settings.DATABASES['default']
+      print(f'--- DEBUG INFO ---')
+      print(f'DB_ENGINE: {db.get(\"ENGINE\")}')
+      print(f'DB_HOST:   {db.get(\"HOST\")}')
+      print(f'DB_USER:   {db.get(\"USER\")}')
+      print(f'DB_NAME:   {db.get(\"NAME\")}')
+      # Verifichiamo lunghezza pass e primi caratteri per non esporla tutta
+      pwd = db.get(\"PASSWORD\", \"\")
+      print(f'DB_PASS:   {pwd[:2]}*** (lunghezza: {len(pwd)})')
+      print(f'------------------')
+      "
+
     - echo "⏳ Attendo MySQL..."
-    - sleep 30
+    - sleep 15 
+
+    # --- IL FIX DECISIVO ---
+    # Ci colleghiamo come root e forziamo l'utente test_django a usare la vecchia auth
+    - echo "🔧 Fix permessi autenticazione MySQL 8..."
+    - mysql -h mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "ALTER USER 'test_django'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_PASSWORD';"
+    - echo "✅ Fix applicato."
+
   script:
-    - echo "🧪 Eseguo test Django con MySQL..."
+    - echo "🧪 Eseguo migrazioni e test..."
     - python manage.py migrate --noinput
     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
     - coverage report
-    - echo "✅ Test con MySQL completati"
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     reports:
