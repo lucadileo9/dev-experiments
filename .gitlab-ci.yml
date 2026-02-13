@@ -398,6 +398,7 @@ test_django_mysql_pymysql:
     DJANGO_SECRET_KEY: "ci-test-secret-key"
 
   before_script:
+    - apt-get update -y && apt-get install -y gcc    
     # 1. SETUP VELOCISSIMO
     # Non serve apt-get update, non serve gcc, non serve libmysqlclient-dev!
     # PyMySQL è solo codice Python, si installa in un attimo.
