@@ -1,8 +1,9 @@
 import os
 from django_project.settings import *
 
-# import pymysql
-# pymysql.install_as_MySQLdb()
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 DEBUG = False  # in produzione deve essere sempre False, altrimenti si rischia di esporre informazioni sensibili in caso di errori
 

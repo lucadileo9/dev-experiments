@@ -313,71 +313,122 @@ deploy_production:
 #   dependencies:
 #     - build_job
 
-test_django_mysql_ubuntu:
-  # 1. Usiamo l'immagine "pesante" ma compatibile
-  image: ubuntu:22.04
+# test_django_mysql_ubuntu:
+#   # 1. Usiamo l'immagine "pesante" ma compatibile
+#   image: ubuntu:22.04
+#   stage: test
+
+#   # 2. Il servizio MySQL rimane lo stesso (è l'altro lato della connessione)
+#   services:
+#     - name: mysql:8.0
+#       alias: mysql
+#       # Potremmo mantenere  il plugin legacy per massima sicurezza, ma meglio commentarlo
+#       # command: ["--default-authentication-plugin=mysql_native_password"]
+
+#   variables:
+#     # Configurazione Database (Environment Variables)
+#     MYSQL_DATABASE: blog
+#     MYSQL_ROOT_PASSWORD: ci_root_password
+#     # Variabili per Django
+#     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
+#     DJANGO_SECRET_KEY: "ci-test-secret-key"
+#     # Evita che apt-get ti chieda conferme interattive (Timezone, ecc.)
+#     DEBIAN_FRONTEND: noninteractive
+
+#   before_script:
+#     # 3. Aggiornamento repository
+#     - apt-get update -q
+
+#     # 4. Installazione Dipendenze di Sistema (La parte "pesante")
+#     # Qui installiamo Python, pip, compilatori (build-essential) e librerie MySQL
+#     - apt-get install -y python3.10 python3-pip python3-dev build-essential pkg-config libmysqlclient-dev mysql-client
+
+#     # 5. Installazione Dipendenze Python
+#     # Nota: requirements.txt deve contenere 'mysqlclient', NON 'PyMySQL'
+#     - python3 -m pip install --upgrade pip
+#     - pip install -r requirements.txt
+#     - pip install coverage
+
+#     # 6. Setup Variabili Ambiente per Django (per connettersi al servizio 'mysql')
+#     - export MYSQL_HOST=mysql
+#     - export MYSQL_PORT=3306
+#     - export MYSQL_USER=root
+#     - export MYSQL_PASSWORD=ci_root_password
+
+#     # 7. Wait-for-it 
+#     # Aspettiamo che MySQL sia pronto prima di lanciare i test
+#     - |
+#       echo "Waiting for MySQL..."
+#       for i in $(seq 1 30); do
+#         if mysqladmin ping -h mysql -u root -pci_root_password --silent; then
+#           echo "MySQL is ready!"
+#           break
+#         fi
+#         echo "Waiting..."
+#         sleep 2
+#       done
+
+#   script:
+#     # 8. Esecuzione Migrazioni e Test
+#     - python3 manage.py migrate --noinput
+#     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
+#     - coverage report
+
+#   # Configurazione Artifacts e Coverage (uguale a prima)
+#   coverage: '/TOTAL.*\s+(\d+%)$/'
+#   artifacts:
+#     reports:
+#       coverage_report:
+#         coverage_format: cobertura
+#         path: coverage.xml
+
+test_django_mysql_pymysql:
+  # IMMAGINE LEGGERA: Possiamo usare slim perché non dobbiamo compilare nulla C
+  image: python:3.10-slim
   stage: test
 
-  # 2. Il servizio MySQL rimane lo stesso (è l'altro lato della connessione)
   services:
     - name: mysql:8.0
       alias: mysql
-      # Potremmo mantenere  il plugin legacy per massima sicurezza, ma meglio commentarlo
-      # command: ["--default-authentication-plugin=mysql_native_password"]
 
   variables:
-    # Configurazione Database (Environment Variables)
     MYSQL_DATABASE: blog
-    MYSQL_ROOT_PASSWORD: ci_root_password
-    # Variabili per Django
+    MYSQL_ROOT_PASSWORD: ci_root_pass
     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
     DJANGO_SECRET_KEY: "ci-test-secret-key"
-    # Evita che apt-get ti chieda conferme interattive (Timezone, ecc.)
-    DEBIAN_FRONTEND: noninteractive
 
   before_script:
-    # 3. Aggiornamento repository
-    - apt-get update -q
-
-    # 4. Installazione Dipendenze di Sistema (La parte "pesante")
-    # Qui installiamo Python, pip, compilatori (build-essential) e librerie MySQL
-    - apt-get install -y python3.10 python3-pip python3-dev build-essential pkg-config libmysqlclient-dev mysql-client
-
-    # 5. Installazione Dipendenze Python
-    # Nota: requirements.txt deve contenere 'mysqlclient', NON 'PyMySQL'
-    - python3 -m pip install --upgrade pip
+    # 1. SETUP VELOCISSIMO
+    # Non serve apt-get update, non serve gcc, non serve libmysqlclient-dev!
+    # PyMySQL è solo codice Python, si installa in un attimo.
+    - pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install coverage
 
-    # 6. Setup Variabili Ambiente per Django (per connettersi al servizio 'mysql')
+    # 2. Configurazione Variabili
     - export MYSQL_HOST=mysql
     - export MYSQL_PORT=3306
     - export MYSQL_USER=root
-    - export MYSQL_PASSWORD=ci_root_password
+    - export MYSQL_PASSWORD=ci_root_pass
 
-    # 7. Wait-for-it 
-    # Aspettiamo che MySQL sia pronto prima di lanciare i test
+    # 3. Wait-for-it (Python-based)
+    # Dato che non abbiamo installato mysql-client (che contiene mysqladmin),
+    # usiamo Python stesso per controllare se il DB è pronto.
     - |
       echo "Waiting for MySQL..."
-      for i in $(seq 1 30); do
-        if mysqladmin ping -h mysql -u root -pci_root_password --silent; then
-          echo "MySQL is ready!"
-          break
-        fi
-        echo "Waiting..."
-        sleep 2
-      done
+      python3 -c "
+      import time, pymysql
+      for i in range(30):
+        try:
+          pymysql.connect(host='mysql', user='root', password='ci_root_pass')
+          print('MySQL ready!')
+          exit(0)
+        except:
+          time.sleep(2)
+      exit(1)
+      "
 
   script:
-    # 8. Esecuzione Migrazioni e Test
-    - python3 manage.py migrate --noinput
+    - python manage.py migrate --noinput
     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
     - coverage report
-
-  # Configurazione Artifacts e Coverage (uguale a prima)
-  coverage: '/TOTAL.*\s+(\d+%)$/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
