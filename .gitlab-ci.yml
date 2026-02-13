@@ -419,21 +419,30 @@ test_django_mysql_pymysql:
     - |
       echo "Waiting for MySQL..."
       python3 -c "
-      import time, pymysql, sys
+      import time, pymysql, sys, os
+      
+      print('Debug: Inizio ciclo di connessione...')
       for i in range(30):
         try:
+          # Stampiamo cosa stiamo facendo per essere sicuri
+          print(f'Tentativo {i+1}...')
+          
           pymysql.connect(
-            host=os.environ[\"MYSQL_HOST\"], 
-            user=os.environ[\"MYSQL_USER\"], 
-            password=os.environ[\"MYSQL_PASSWORD\"],
-            database=os.environ[\"MYSQL_DATABASE\"]
+            host=os.environ['MYSQL_HOST'], 
+            user=os.environ['MYSQL_USER'], 
+            password=os.environ['MYSQL_PASSWORD'],
+            database=os.environ['MYSQL_DATABASE']
           )
+          
           print('MySQL ready!')
           sys.exit(0)
-        except:
+          
+        except Exception as e:
+          print(f'Errore connessione: {e}') 
           time.sleep(2)
-      sys.exit(1)
-      "
+      
+        print('Timeout!')
+        sys.exit(1)"
 
   script:
     - python manage.py migrate --noinput
