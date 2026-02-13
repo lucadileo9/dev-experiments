@@ -239,80 +239,6 @@ deploy_production:
   when: manual  # ← Richiede conferma manuale (sicurezza)
 
 
-# Job: Test Django con MySQL (Integration Test)
-# test_django_mysql:
-#   image: ubuntu:22.04  # ← Contiene driver MySQL Oracle
-#   stage: test
-#   services:
-#     - name: mysql:8.0
-#       alias: mysql
-#       # Forza mysql_native_password (compatibile con client MariaDB di Debian)
-#       # e disabilita SSL (inutile in CI, causa problemi con cert autofirmati)
-#       command: ["--default-authentication-plugin=mysql_native_password", "--skip-ssl"]
-
-#   variables:
-#     # ---- Variabili lette da MySQL image (entrypoint) ----
-#     MYSQL_DATABASE: blog
-#     MYSQL_ROOT_PASSWORD: ci_root_password
-    
-#     # ---- Variabili lette solo da Django ----
-#     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
-#     DJANGO_SECRET_KEY: "ci-test-secret-key-not-for-production"
-
-#   before_script:
-#     - apt-get update
-#     - apt-get install -y python3.10 python3-pip libmysqlclient-dev mysql-client
-#     - pip install -r requirements.txt
-#     # Variabili per Django — passate via export, NON visibili al service MySQL
-#     - export MYSQL_USER=root
-#     - export MYSQL_PASSWORD=ci_root_password
-#     - export MYSQL_HOST=mysql
-#     - export MYSQL_PORT=3306
-
-#     # Attesa MySQL con retry (max 60 secondi)
-#     - |
-#       echo "Waiting for MySQL..."
-#       for i in $(seq 1 30); do
-#         if mysqladmin ping -h mysql -u root -pci_root_password --silent 2>/dev/null; then
-#           echo "MySQL is ready! (attempt $i)"
-#           break
-#         fi
-#         if [ "$i" = "30" ]; then
-#           echo "ERRORE: MySQL non si è avviato in 60 secondi"
-#           # Debug info
-#           echo "--- DNS check ---"
-#           getent hosts mysql || echo "DNS: mysql non risolvibile"
-#           echo "--- Network check ---"
-#           apt-get install -y -qq netcat-openbsd 2>/dev/null
-#           nc -zv mysql 3306 2>&1 || echo "Porta 3306 non raggiungibile"
-#           exit 1
-#         fi
-#         echo "  Attempt $i/30 - waiting 2s..."
-#         sleep 2
-#       done
-
-#   script:
-#     # Verifica connessione esplicita (debug)
-#     - mysql -h mysql -u root -pci_root_password -e "SELECT 1; SHOW DATABASES;"
-    
-#     - echo "== Migrazione =="
-#     - python manage.py migrate --noinput
-
-#     - echo "== Test con Coverage =="
-#     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
-#     - coverage report --show-missing
-#     - coverage xml
-
-#   coverage: '/TOTAL.*\s+(\d+%)$/'
-#   artifacts:
-#     reports:
-#       coverage_report:
-#         coverage_format: cobertura
-#         path: coverage.xml
-#     expire_in: 30 days
-#   dependencies:
-#     - build_job
-
 # test_django_mysql_ubuntu:
 #   # 1. Usiamo l'immagine "pesante" ma compatibile
 #   image: ubuntu:22.04
@@ -405,7 +331,6 @@ test_django_mysql_pymysql:
     - pip install --upgrade pip
     - pip install -r requirements.txt
     - pip install coverage
-    - pip install cryptography  # Per risolvere un errore di importazione di PyMySQL
 
     # 2. Configurazione Variabili
     - export MYSQL_HOST=mysql
