@@ -189,7 +189,7 @@ Il job `build_check` verifica la correttezza sintattica del codice Python (trami
   - **Semplicità**: Zero configurazione, nessun service container necessario
   - **Scopo**: Verifica della logica applicativa, business logic, views, models
   - **Razionale**: Django ORM astrae le differenze SQL, rendendo i risultati equivalenti tra SQLite e MySQL per test unitari
-  * **Coverage:** È stato integrato il tool `coverage` per misurare la percentuale di codice testato (raggiungendo il 93%), con la generazione di report in formato Cobertura visualizzabili direttamente nell'interfaccia di GitLab.
+  - **Coverage:** È stato integrato il tool `coverage` per misurare la percentuale di codice testato, con la generazione di report in formato Cobertura visualizzabili direttamente nell'interfaccia di GitLab.
 * **Test di Integrazione con MySQL 8.0 (job `test_django_mysql_pymysql`):**
   - **Obiettivo**: Eseguire i test con lo stesso motore database utilizzato in produzione (MySQL 8.0) per garantire la **Parità Dev/Prod** ed evitare problemi di compatibilità.
   - **Architettura**: Utilizzo di servizi GitLab CI per avviare un container `mysql:8.0` affiancato al container di test. Il job installa il driver PyMySQL (Pure Python, evitando problematiche di compatibilità tra librerie C di sistema e MySQL 8.0) e si connette come utente `root` per avere i privilegi necessari alla creazione del database di test.
@@ -370,6 +370,11 @@ Questa modifica, combinata con l'iniezione della variabile d'ambiente `MYSQL_HOS
 ## 7. Workflow Completo
 
 ```mermaid
+%%{
+  init: {
+    "layout": "elk"
+  }
+}%%
 flowchart TD
     DEV["👨‍💻 Developer"] -->|git push| PRE["Pre-commit Hook"]
     PRE -->|"Black formatta"| GL_PUSH["Push to GitLab"]
@@ -377,12 +382,12 @@ flowchart TD
     subgraph CI["CI - Shared Runner (Cloud)"]
         GL_PUSH --> CI_BUILD["Build Check"]
         CI_BUILD --> CI_TEST["Test + Coverage"]
-        CI_TEST --> CI_LINT["Lint"]
+        CI_TEST --> CI_TEST_MYSQL["Test MySQL 8.0"]
+        CI_TEST_MYSQL --> CI_LINT["Lint"]
         CI_LINT --> CI_FORMAT["Format Check"]
         CI_FORMAT --> CI_SEC["Security Scan"]
-        
+        CI_SEC --> REG_LOGIN[Login Registry]
         subgraph PackageJob["Job: build_docker_image"]
-            CI_SEC --> REG_LOGIN[Login Registry]
             REG_LOGIN --> DK_BUILD[docker build]
             DK_BUILD --> DK_PUSH_SHA[docker push :sha]
             DK_PUSH_SHA --> DK_PUSH_LATEST[docker push :latest]
@@ -391,8 +396,9 @@ flowchart TD
     
     DK_PUSH_LATEST --> REGISTRY[("☁️ GitLab<br/>Container Registry")]
     
-    REGISTRY --> IMG_SHA["📦 cloudedgecomputing:a1b2c3d4"]
     REGISTRY --> IMG_LATEST["📦 cloudedgecomputing:latest"]    
+    REGISTRY --> IMG_SHA["📦 cloudedgecomputing:a1b2c3d4"]
+    IMG_LATEST --> CD_PULL
     
     PackageJob --> MANUAL_TRIGGER{"🖐️ Manual?"}
     MANUAL_TRIGGER -->|"Click"| CD_START
