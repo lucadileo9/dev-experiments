@@ -326,7 +326,7 @@ test_django_mysql_pymysql:
   before_script:
     - apt-get update -y && apt-get install -y gcc python3-dev
     # 1. SETUP VELOCISSIMO
-    # Non serve apt-get update, non serve gcc, non serve libmysqlclient-dev!
+    # Non serve apt-get update, non serve libmysqlclient-dev!
     # PyMySQL è solo codice Python, si installa in un attimo.
     - pip install --upgrade pip
     - pip install -r requirements.txt
@@ -366,8 +366,8 @@ test_django_mysql_pymysql:
           print(f'Errore connessione: {e}') 
           time.sleep(2)
       
-        print('Timeout!')
-        sys.exit(1)"
+      print('Timeout!')
+      sys.exit(1)"
 
   script:
     - python manage.py migrate --noinput

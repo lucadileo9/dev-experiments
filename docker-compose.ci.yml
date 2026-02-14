@@ -111,7 +111,9 @@ services:
         pip install -r requirements.txt &&
         pip install coverage &&
         pip install cryptography &&  # Per risolvere un errore di importazione di PyMySQL
-     
+        # Per la sintassi di YAML lasciare questa riga vuota evita che il resto del comando venga interpretato come parte del comando precedente
+
+        
 
         python manage.py migrate --noinput &&
         coverage run --source='.' manage.py test accounts articles pages --verbosity=2 &&
