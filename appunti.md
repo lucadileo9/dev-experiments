@@ -1501,7 +1501,8 @@ flowchart TD
     end
     
     subgraph Stage2["🧪 STAGE: Test"]
-        T1[test_django<br/>~30s]
+        T1[test_django SQLite<br/>~30s]
+        T4[test_django_mysql<br/>~45s]
         T2[format_check<br/>~10s]
         T3[lint_flake8<br/>~5s]
     end
@@ -1513,7 +1514,8 @@ flowchart TD
     Stage1 --> Stage2
     Stage2 --> Stage3
     
-    T1 -.->|Coverage 93%| R1[📊 Report]
+    T1 -.->|Coverage 93%| R1[📊 Report SQLite]
+    T4 -.->|Dev/Prod Parity| R3[✅ MySQL 8.0 Tests]
     S1 -.->|CVE Check| R2[📋 Safety Report]
 ```
 
@@ -1687,6 +1689,77 @@ security_dependencies:
 
 ---
 
+#### 🔗 Test Integrazione MySQL 8.0
+
+**Scopo**: Eseguire i test Django con il motore database di produzione (MySQL 8.0) per garantire la **Parità Dev/Prod** e scoprire incompatibilità che SQLite in-memory non rileva.
+
+```yaml
+test_django_mysql_pymysql:
+  image: python:3.10-slim
+  stage: test
+  services:
+    - name: mysql:8.0
+      alias: mysql
+  variables:
+    MYSQL_DATABASE: blog
+    MYSQL_ROOT_PASSWORD: ci_root_pass
+    DJANGO_SETTINGS_MODULE: "django_project.production_settings"
+    DJANGO_SECRET_KEY: "ci-test-secret-key"
+  before_script:
+    - apt-get update -y && apt-get install -y gcc python3-dev
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install coverage
+    - export MYSQL_HOST=mysql
+    - export MYSQL_PORT=3306
+    - export MYSQL_USER=root
+    - export MYSQL_PASSWORD=ci_root_pass
+    # Wait-for-it pattern in Python (senza mysql-client)
+    - |
+      python3 -c "
+      import time, pymysql, sys, os
+      for i in range(30):
+        try:
+          pymysql.connect(
+            host=os.environ['MYSQL_HOST'], 
+            user=os.environ['MYSQL_USER'], 
+            password=os.environ['MYSQL_PASSWORD'],
+            database=os.environ['MYSQL_DATABASE']
+          )
+          print('MySQL ready!')
+          sys.exit(0)
+        except Exception as e:
+          print(f'Errore connessione: {e}') 
+          time.sleep(2)
+      print('Timeout!')
+      sys.exit(1)"
+  script:
+    - python manage.py migrate --noinput
+    - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
+    - coverage report
+```
+
+**Analisi architettura**:
+
+| Elemento | Descrizione |
+|----------|-------------|
+| `services: mysql:8.0` | GitLab avvia un container MySQL 8.0 affiancato al container di test, visibile via DNS con nome `mysql` |
+| `image: python:3.10-slim` | Immagine leggera Debian. PyMySQL (Pure Python) evita problemi di compatibilità tra MariaDB client libs (installate da default-libmysqlclient-dev) e MySQL 8.0 SHA2 auth |
+| `MYSQL_USER=root` | Necessario per i test Django che richiedono `CREATE DATABASE test_blog` (privilegio non concesso a utenti standard) |
+| `pymysql.connect()` | Wait-for-it implementato in Python (senza bisogno di `mysql-client` di sistema), riprova fino a 30 volte con sleep di 2 secondi |
+| `production_settings.py` | Usa `pymysql.install_as_MySQLdb()` (monkey patching) per ingannare Django facendogli credere di usare mysqlclient |
+
+**Vantaggi rispetto a SQLite**:
+- **Autenticazione reale**: Testa i meccanismi SHA2 di MySQL 8.0
+- **Tipi di dato**: Verifica compatibilità DATE, DATETIME, JSON fields con MySQL anziché SQLite
+- **Transazioni**: Comportamento InnoDB (ACID) vs SQLite (più permissivo)
+- **Performance realistiche**: Query plan e optimizer MySQL
+
+**Problematiche risolte**:
+L'integrazione ha richiesto debugging approfondito a causa di incompatibilità tra il client MariaDB di Debian e MySQL 8.0. Per dettagli completi sull'analisi del problema, le soluzioni tentate e le alternative, consultare: `mysql_mariadb_problem.md` — Case study completo della fase di debugging
+
+---
+
 ## Problemi Riscontrati e Soluzioni
 
 ### 🔴 Problema 1: MySQL in CI Troppo Complesso
@@ -1703,6 +1776,7 @@ if 'test' in sys.argv:
         'NAME': ':memory:',
     }
 ```
+Tuttavia alla fine abbiamo implementato anche i test con MySQL 8.0 in CI per garantire parità dev/prod e scoprire incompatibilità che SQLite non rileva.
 
 ---
 
@@ -1747,12 +1821,18 @@ if 'test' in sys.argv:
 | Stage | Job | Durata | Comportamento |
 |-------|-----|--------|---------------|
 | Build | `build_check` | ~20s | ❌ Blocca |
-| Test | `test_django` | ~30s | ❌ Blocca |
+| Test | `test_django` (SQLite) | ~30s | ❌ Blocca |
+| Test | `test_django_mysql_pymysql` | ~45s | ❌ Blocca |
 | Test | `format_check` | ~10s | ❌ Blocca |
 | Test | `lint_flake8` | ~5s | ⚠️ Warning |
 | Security | `security_dependencies` | ~15s | ⚠️ Warning |
 
 ---
+# Continuous Deployment
+
+## Obiettivo
+
+Implementare Continuous Deployment (CD) automatizzato per deployare l'applicazione Django su ambiente locale ogni volta che il codice passa i test della pipeline CI. Questo completa il ciclo DevOps: dal commit al deployment automatico.
 
 ## Panoramica Step
 
