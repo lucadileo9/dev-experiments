@@ -1,3 +1,45 @@
+# Django CI/CD Project
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-092E20?style=flat&logo=django&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat&logo=mysql&logoColor=white)
+[![pipeline status](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/badges/02-django-base-project/pipeline.svg)](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/-/commits/02-django-base-project)
+[![coverage report](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/badges/02-django-base-project/coverage.svg)](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/-/commits/02-django-base-project)
+
+University assignment for a Cloud & Edge Computing course: a Django newspaper platform with a complete DevOps pipeline, containerized deployment, and production configuration.
+
+## 🎯 Objective
+
+Apply DevOps practices to a legacy Django application without modifying its core logic:
+- Set up a CI/CD pipeline with GitLab CI
+- Containerize the application with Docker and Docker Compose
+- Configure a production environment with uWSGI and MySQL
+- Manage different environments (development vs. production) via environment variables
+- Automate testing, linting, and deployment stages
+
+## 🛠️ Tech Stack
+
+- **Python / Django** - Web framework and application logic
+- **MySQL / MariaDB** - Production database
+- **SQLite** - Development database (no setup required)
+- **uWSGI** - Production WSGI server
+- **Docker / Docker Compose** - Containerization and multi-service orchestration
+- **GitLab CI** - Continuous Integration and Deployment pipeline
+
+## 💡 What I Learned
+
+- Structuring a Django project for multiple environments (dev/prod)
+- Writing a GitLab CI/CD pipeline with stages for test, build, and deploy
+- Configuring Docker Compose for both development and production environments
+- Running Django applications with uWSGI behind a reverse proxy
+- Managing secrets and environment-specific settings securely
+- Handling database migrations in a CI/CD workflow
+
+---
+
+I left the original README from the course assignment below for reference.
+
 # Django Newspaper
 
 [![pipeline status](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/badges/02-django-base-project/pipeline.svg)](https://gitlab.com/Luca_Di_Leo/cloudedgecomputing/-/commits/02-django-base-project)
