@@ -1,0 +1,375 @@
+# .gitlab-ci.yml
+# Pipeline CI/CD per Django Newspaper Project
+
+# Definizione stages (fasi sequenziali)
+stages:
+  - build  # fase di costruzione del progetto
+  - test # esecuzione di tutti i test
+  - security
+  - package 
+  - deploy
+# Qui definiamo l'ordine delle fasi, ossia prima di eseguire i job di test, vengono eseguiti i job di build.
+# Ovviamente i job di test vengono eseguiti solo se i job di build sono andati a buon fine.
+
+
+# Variabili globali, che saranno disponibili in tutti i job
+variables:
+  # Django settings per test
+  DJANGO_SETTINGS_MODULE: "django_project.settings"
+  # Disabilita prompt interattivi
+  DEBIAN_FRONTEND: "noninteractive" # disabilita prompt interattivi per apt-get
+  # variabili docker documentate meglio nel file appunti.md
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+
+# Template per job Python (riutilizzabile), così da non dover riscrivere ogni volta delle parti comuni
+.python_template: &python_template
+  image: python:3.10-slim
+  before_script:
+    # Installa dipendenze sistema (senza MySQL per ora, usiamo SQLite)
+    - apt-get update -qq # Aggiorna lista pacchetti, silenziosamente (-qq)
+    - apt-get install -y -qq gcc python3-dev # pacchetti necessari per compilare alcune dipendenze Python (nessun prompt grazie a -y -qq)
+    # Installa dipendenze Python (senza mysqlclient, uso SQLite)
+    - pip install --upgrade pip # Aggiorna pip all'ultima versione, per evitare problemi con pacchetti più recenti
+    - pip install -r requirements.txt || pip install Django==4.0 environs crispy-bootstrap5 django-crispy-forms whitenoise
+    # installa dipendenze, con fallback in caso di problemi con requirements.txt
+
+# Job 1: Questo è il job di build, che verifica la sintassi del codice Python
+build_job:
+  <<: *python_template # Riutilizzo il template definito sopra
+  stage: build # specifico che questo job appartiene alla fase di build
+  script: # e dico cosa deve fare questo job
+    - echo "Verifico sintassi Python..."
+    - python -m py_compile manage.py # Verifica sintassi file principale
+    - python -m compileall django_project/ -q # Compilazione silenziosa di tutto il progetto
+    - echo "✅ Build completato con successo"
+  artifacts: # Salvo i file compilati come artefatti per i job successivi
+    paths:
+      - django_project/
+    expire_in: 1 hour # Gli artefatti scadono dopo 1 ora
+
+# Job 2: Test Django
+test_django:
+  <<: *python_template
+  stage: test
+  script:
+    - echo "🧪 Eseguo test Django con coverage..."
+     
+    # Installa coverage
+    - pip install coverage
+    
+    # Esegui test con coverage
+    - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
+    
+    # Report coverage in console
+    - coverage report
+    
+    # Report coverage dettagliato (mostra linee non coperte)
+    - coverage report --show-missing
+    
+    # Genera report XML per GitLab
+    - coverage xml
+    
+    - echo "✅ Test completati - Coverage generato"
+  
+  # Estrai percentuale coverage per badge GitLab
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  # Artifacts
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 30 days
+  
+  dependencies:
+    - build_job
+
+# Job 3: Linting (opzionale ma consigliato)
+lint_code:
+  <<: *python_template
+  stage: test
+  script:
+    - echo "Controllo qualità codice..."
+    - pip install flake8
+    # Ignora alcuni warning comuni Django
+    - flake8 --exclude=migrations,venv,__pycache__ --max-line-length=120 --ignore=E501,W503
+    - echo "✅ Linting completato"
+  allow_failure: true  # Non blocca pipeline se fallisce
+
+# Job 4: Formattazione codice (opzionale)
+format_check:
+  <<: *python_template
+  stage: test
+  script:
+    - pip install black
+    - black --check . --line-length=120  # --check = verifica, non modifica
+  allow_failure: true # Non blocca pipeline se fallisce
+
+# Job 5: Sicurezza 
+security_dependencies:
+  <<: *python_template
+  stage: security
+  script:
+    - echo "🔒 Controllo vulnerabilità..."
+    - pip install safety
+    - safety check --file requirements.txt --json > safety-report.json || true
+    - safety check --file requirements.txt --full-report
+    - echo "✅ Security scan completato"
+  artifacts:
+    reports:
+      dependency_scanning: safety-report.json
+    paths:
+      - safety-report.json
+    when: always
+    expire_in: 30 days
+  allow_failure: true
+
+build_docker_image:
+  stage: package
+  image: docker:24-dind  # Docker-in-Docker (può buildare immagini Docker)
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "🐳 Configurazione Docker..."
+    - docker info
+    - echo "🔐 Login GitLab Container Registry..."
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - echo "📦 Build Docker image..."
+    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
+    
+    - echo "📤 Push immagine a registry..."
+    - docker push $IMAGE_TAG
+    - docker push $IMAGE_LATEST
+    
+    - echo "✅ Immagine pubblicata:"
+    - echo "  - $IMAGE_TAG"
+    - echo "  - $IMAGE_LATEST"
+  only:
+    - 02-django-base-project  # Esegue solo su questo branch
+  dependencies: []  # Non serve artifacts da job precedenti
+
+# Job 6: Test GitLab Runner self-hosted su Windows, mi serve solo per verificare che il runner funzioni
+test_runner:
+  stage: package  
+  tags:
+    - windows  # ← Esegue SOLO su runner con tag "windows"
+  script:
+    - echo "🎯 Test GitLab Runner self-hosted"
+    - echo "Hostname:"
+    - hostname
+    - echo "Docker version:"
+    - docker --version
+    - echo "Docker Compose version:"
+    - docker-compose --version
+    - echo "Working directory:"
+    - pwd
+    - echo "✅ Runner funzionante!"
+  only:
+    - 02-django-base-project
+
+
+deploy_production:
+  stage: deploy
+  tags:
+    - windows  # ← Esegue su self-hosted runner 
+  before_script:
+    - echo "🚀 Preparazione deployment..."
+    
+    # Login GitLab Container Registry
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    
+    # Crea file .env da template con variabili GitLab
+    - echo "📝 Creazione file .env..."
+    - |
+      @"
+      DJANGO_SECRET_KEY=$env:DJANGO_SECRET_KEY
+      DJANGO_SETTINGS_MODULE=django_project.production_settings
+      
+      # Configurazione Database
+      MYSQL_DATABASE=blog
+      MYSQL_USER=django
+      MYSQL_PASSWORD=$env:MYSQL_PASSWORD
+      MYSQL_ROOT_PASSWORD=$env:MYSQL_ROOT_PASSWORD
+      MYSQL_HOST=db
+      MYSQL_PORT=3306
+      
+      # Variabile usata solo dal docker-compose per il nome immagine
+      IMAGE_NAME=$env:DEPLOY_IMAGE_NAME
+
+      "@ | Out-File -FilePath .env -Encoding UTF8
+
+    - echo "✅ File .env creato"
+  
+  script:
+    - echo "🐳 Pull immagine da registry..."
+    - docker pull ${env:DEPLOY_IMAGE_NAME}
+    
+    - echo "📦 Deploy con docker-compose..."
+    - docker-compose -f docker-compose.prod.yml down --remove-orphans
+    - docker-compose -f docker-compose.prod.yml up -d
+    
+    - echo "⏳ Attendere avvio container..."
+    - Start-Sleep -Seconds 10
+    
+    - echo "✅ Deployment completato!"
+    - echo "Applicazione disponibile su:http://localhost:8001"
+    
+    - echo "📊 Container in esecuzione:"
+    - docker ps --filter "name=newspaper"
+
+    - echo "🔍 VERIFICA VARIABILI DENTRO IL CONTAINER:"
+    # - docker exec newspaper_web_prod env 
+  
+  after_script:
+    - echo "🧹 Cleanup file .env (sicurezza)..."
+    - Remove-Item .env -ErrorAction SilentlyContinue
+  
+  only:
+    - 02-django-base-project  # Solo su questo branch
+  
+  environment:
+    name: production
+    url: http://localhost:8001
+  
+  when: manual  # ← Richiede conferma manuale (sicurezza)
+
+
+# test_django_mysql_ubuntu:
+#   # 1. Usiamo l'immagine "pesante" ma compatibile
+#   image: ubuntu:22.04
+#   stage: test
+
+#   # 2. Il servizio MySQL rimane lo stesso (è l'altro lato della connessione)
+#   services:
+#     - name: mysql:8.0
+#       alias: mysql
+#       # Potremmo mantenere  il plugin legacy per massima sicurezza, ma meglio commentarlo
+#       # command: ["--default-authentication-plugin=mysql_native_password"]
+
+#   variables:
+#     # Configurazione Database (Environment Variables)
+#     MYSQL_DATABASE: blog
+#     MYSQL_ROOT_PASSWORD: ci_root_password
+#     # Variabili per Django
+#     DJANGO_SETTINGS_MODULE: "django_project.production_settings"
+#     DJANGO_SECRET_KEY: "ci-test-secret-key"
+#     # Evita che apt-get ti chieda conferme interattive (Timezone, ecc.)
+#     DEBIAN_FRONTEND: noninteractive
+
+#   before_script:
+#     # 3. Aggiornamento repository
+#     - apt-get update -q
+
+#     # 4. Installazione Dipendenze di Sistema (La parte "pesante")
+#     # Qui installiamo Python, pip, compilatori (build-essential) e librerie MySQL
+#     - apt-get install -y python3.10 python3-pip python3-dev build-essential pkg-config libmysqlclient-dev mysql-client
+
+#     # 5. Installazione Dipendenze Python
+#     # Nota: requirements.txt deve contenere 'mysqlclient', NON 'PyMySQL'
+#     - python3 -m pip install --upgrade pip
+#     - pip install -r requirements.txt
+#     - pip install coverage
+
+#     # 6. Setup Variabili Ambiente per Django (per connettersi al servizio 'mysql')
+#     - export MYSQL_HOST=mysql
+#     - export MYSQL_PORT=3306
+#     - export MYSQL_USER=root
+#     - export MYSQL_PASSWORD=ci_root_password
+
+#     # 7. Wait-for-it 
+#     # Aspettiamo che MySQL sia pronto prima di lanciare i test
+#     - |
+#       echo "Waiting for MySQL..."
+#       for i in $(seq 1 30); do
+#         if mysqladmin ping -h mysql -u root -pci_root_password --silent; then
+#           echo "MySQL is ready!"
+#           break
+#         fi
+#         echo "Waiting..."
+#         sleep 2
+#       done
+
+#   script:
+#     # 8. Esecuzione Migrazioni e Test
+#     - python3 manage.py migrate --noinput
+#     - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
+#     - coverage report
+
+#   # Configurazione Artifacts e Coverage (uguale a prima)
+#   coverage: '/TOTAL.*\s+(\d+%)$/'
+#   artifacts:
+#     reports:
+#       coverage_report:
+#         coverage_format: cobertura
+#         path: coverage.xml
+
+test_django_mysql_pymysql:
+  # IMMAGINE LEGGERA: Possiamo usare slim perché non dobbiamo compilare nulla C
+  image: python:3.10-slim
+  stage: test
+
+  services:
+    - name: mysql:8.0
+      alias: mysql
+
+  variables:
+    MYSQL_DATABASE: blog
+    MYSQL_ROOT_PASSWORD: ci_root_pass
+    DJANGO_SETTINGS_MODULE: "django_project.production_settings"
+    DJANGO_SECRET_KEY: "ci-test-secret-key"
+
+  before_script:
+    - apt-get update -y && apt-get install -y gcc python3-dev
+    # 1. SETUP VELOCISSIMO
+    # Non serve apt-get update, non serve libmysqlclient-dev!
+    # PyMySQL è solo codice Python, si installa in un attimo.
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install coverage
+
+    # 2. Configurazione Variabili
+    - export MYSQL_HOST=mysql
+    - export MYSQL_PORT=3306
+    - export MYSQL_USER=root
+    - export MYSQL_PASSWORD=ci_root_pass
+
+    # 3. Wait-for-it (Python-based)
+    # Dato che non abbiamo installato mysql-client (che contiene mysqladmin),
+    # usiamo Python stesso per controllare se il DB è pronto.
+    - |
+      echo "Waiting for MySQL..."
+      python3 -c "
+      import time, pymysql, sys, os
+      
+      print('Debug: Inizio ciclo di connessione...')
+      for i in range(30):
+        try:
+          # Stampiamo cosa stiamo facendo per essere sicuri
+          print(f'Tentativo {i+1}...')
+          
+          pymysql.connect(
+            host=os.environ['MYSQL_HOST'], 
+            user=os.environ['MYSQL_USER'], 
+            password=os.environ['MYSQL_PASSWORD'],
+            database=os.environ['MYSQL_DATABASE']
+          )
+          
+          print('MySQL ready!')
+          sys.exit(0)
+          
+        except Exception as e:
+          print(f'Errore connessione: {e}') 
+          time.sleep(2)
+      
+      print('Timeout!')
+      sys.exit(1)"
+
+  script:
+    - python manage.py migrate --noinput
+    - coverage run --source='.' manage.py test accounts articles pages --verbosity=2
+    - coverage report

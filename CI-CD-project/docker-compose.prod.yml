@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: newspaper_db_prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    # L'enviroment prima prendeva i valori o dall'ambiente del runner (chiavi senze valore, come MYSQL_PASSWORD) 
+    # o da valori di default messi da me nel file (MYSQL_HOST=db), ma in produzione vogliamo che tutte 
+    # le variabili d'ambiente siano prese dal file .env creato dinamicamente durante il deploy, 
+    # quindi usiamo env_file per caricare tutte le variabili d'ambiente da quel file, e rimuoviamo i valori di default
+    # environment: 
+    #   MYSQL_DATABASE: blog
+    #   MYSQL_USER: django
+    #   MYSQL_PASSWORD:
+    #   MYSQL_ROOT_PASSWORD:
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    ports:
+      - "3307:3306"  # Porta diversa per evitare conflitti con dev
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+    networks:
+      - newspaper_prod
+
+  web:
+    # USA immagine da registry (NO build)
+    image: ${IMAGE_NAME:-registry.gitlab.com/luca_di_leo/cloudedgecomputing:latest}
+    #image: registry.gitlab.com/luca_di_leo/cloudedgecomputing:latest
+
+    container_name: newspaper_web_prod
+    command: >
+      sh -c "python manage.py migrate &&
+            python manage.py collectstatic --noinput &&
+            uwsgi --ini uwsgi.ini"    
+    # Contrariamente alla versione di sviluppo non abbiamo:
+    # volumes:
+    #   - .:/app  ← RIMOSSO
+    # siccome in produzione non vogliamo montare il codice sorgente dall'host al container,
+    # ma usare l'immagine Docker che contiene già il codice dell'applicazione.
+    
+    ports:
+      - "8001:8000"  # Porta diversa per non confliggere con dev
+    env_file:
+      - .env
+    # environment: # RIMOSSO, vedi commento sopra
+    #   - DJANGO_SETTINGS_MODULE=django_project.production_settings
+    #   - MYSQL_DATABASE=blog # lo spazio infame rompeva tutto
+    #   - MYSQL_USER=django # lo spazio infame rompeva tutto
+    #   - MYSQL_PASSWORD
+    #   - MYSQL_HOST=db
+    #   - MYSQL_PORT=3306
+    #   - DJANGO_SECRET_KEY
+      
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - newspaper_prod
+
+volumes:
+  mysql_data_prod:
+
+networks:
+  newspaper_prod:
+    driver: bridge

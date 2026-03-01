@@ -1,0 +1,7 @@
+repos:
+  # Solo Black (formatter)
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        args: ['--line-length=120']

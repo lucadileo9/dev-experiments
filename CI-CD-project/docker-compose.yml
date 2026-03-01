@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:  # Nome del servizio 
+    image: mysql:8.0 # Immagine su cui si basa il servizio (presa da Docker Hub)
+    container_name: newspaper_db # Nome del container
+    restart: unless-stopped # Politica di riavvio del container, riavvia a meno che non sia stato fermato manualmente
+    environment: # Variabili d'ambiente per la configurazione del database
+      MYSQL_DATABASE: blog
+      MYSQL_USER: django
+      MYSQL_PASSWORD: django_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes: # Montaggio del volume per la persistenza dei dati, ossia se fermo il container i dati non vanno persi
+      - mysql_data:/var/lib/mysql
+    ports: # Mappatura delle porte, esponendo la porta 3306 del container sulla porta 3306 della macchina host
+      - "3306:3306"
+    healthcheck: # Controllo dello stato di salute del servizio, ossia 
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"] # fai questo comando per verificare se il database è attivo
+      timeout: 5s # massimo tempo di attesa per il test
+      retries: 10 # numero di tentativi prima di considerare il servizio non sano
+
+  web:  # ANcora, nome del servizio
+    build: . # Qui non prendiamo un'immagine da Docker Hub, ma costruiamo l'immagine a partire dal Dockerfile presente nella directory corrente (.)
+    container_name: newspaper_web # Ancora, nome del container
+    command: > # comando da eseguire all'avvio del container, diverso rispetto a quello di default del Dockerfile, perchè qui vogliamo eseguire delle migrazioni prima di avviare il server
+      sh -c "python manage.py migrate && 
+             uwsgi --ini uwsgi.ini"
+    volumes: # Montaggio del volume per il codice sorgente dell'applicazione, in modo che le modifiche fatte sul codice sulla macchina host siano riflesse all'interno del container
+      - .:/app
+    # Grazie a questo montaggio, possiamo evitare di ricostruire l'immagine Docker ogni volta che modifichiamo il codice
+    # tuttavia non è persistente, quindi se il container viene rimosso, tutte le modifiche non salvate sul host andranno perse
+    
+
+
+    ports: # Mappatura delle porte, esponendo la porta 8000 del container sulla porta 8000 della macchina host
+      - "8000:8000"
+    environment: # Variabili d'ambiente per la configurazione dell'applicazione Django, 
+    # sono di più rispetto a quelle del Dockerfile perchè qui specifichiamo anche le variabili per connettersi al database
+      - DJANGO_SETTINGS_MODULE=django_project.production_settings
+      - MYSQL_DATABASE=blog
+      - MYSQL_USER=django
+      - MYSQL_PASSWORD=django_password
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - DJANGO_SECRET_KEY=development-secret-key-change-in-production
+    depends_on: # Specifica che il servizio "web" dipende dal servizio "db", quindi Docker Compose aspetterà che il servizio "db" sia sano prima di avviare il servizio "web"
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

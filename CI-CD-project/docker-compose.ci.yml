@@ -1,0 +1,146 @@
+# Primo Docker Compose per la CI, con MySQL e un container di test basato su Ubuntu.
+# L'idea è che il container di test esegua un setup completo (compilazione mysqlclient, migrazioni, test) per simulare al meglio 
+#l'ambiente di produzione e scoprire eventuali problemi di compatibilità o configurazione.
+
+# services:
+#   mysql:
+#     image: mysql:8.0
+#     # Nota: Con Ubuntu e i driver giusti, questo flag NON servirebbe più,
+#     # perché il client supporterebbe SHA2 nativamente.
+#     # Ma lasciarlo non fa male per sicurezza.
+#     # command: ["--default-authentication-plugin=mysql_native_password"]
+#     environment:
+#       MYSQL_DATABASE: blog
+#       MYSQL_ROOT_PASSWORD: ci_root_pass
+#     healthcheck:
+#       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pci_root_pass"]
+#       interval: 2s
+#       timeout: 5s
+#       retries: 30
+
+#   test:
+#     # CAMBIAMENTO 1: Usiamo Ubuntu invece di Python Slim
+#     image: ubuntu:22.04
+    
+#     working_dir: /app
+#     volumes:
+#       - .:/app
+    
+#     environment:
+#       DJANGO_SETTINGS_MODULE: django_project.production_settings
+#       DJANGO_SECRET_KEY: ci-test-key
+#       MYSQL_USER: root
+#       MYSQL_PASSWORD: ci_root_pass
+#       MYSQL_HOST: mysql
+#       MYSQL_PORT: 3306
+#       MYSQL_DATABASE: blog
+#       # Su Ubuntu/Debian frontend non interattivo evita blocchi durante apt install
+#       DEBIAN_FRONTEND: noninteractive 
+
+#     depends_on:
+#       mysql:
+#         condition: service_healthy
+
+#     command: >
+#       bash -c "
+#         echo '--- 1. Aggiornamento Repo ---' &&
+#         apt-get update &&
+        
+#         echo '--- 2. Installazione Python e Tool di Build ---' &&
+#         apt-get install -y python3.10 python3-pip python3-dev build-essential pkg-config libmysqlclient-dev mysql-client &&
+        
+#         echo '--- 3. Installazione Dipendenze Python (Compilazione mysqlclient) ---' &&
+#         pip install --upgrade pip &&
+#         pip install -r requirements.txt &&
+#         pip install coverage &&
+        
+#         echo '--- 4. Esecuzione Test ---' &&
+#         python3 manage.py migrate --noinput &&
+#         coverage run --source='.' manage.py test accounts articles pages --verbosity=2 &&
+#         coverage report
+#       "
+
+# Secondo Docker Compose, con MySQL e un container di test basato su Python Slim.
+
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    # PyMySQL supporta SHA2, ma per coerenza con la CI manteniamo il flag
+    # command: ["--default-authentication-plugin=mysql_native_password"]
+    environment:
+      MYSQL_DATABASE: blog
+      MYSQL_ROOT_PASSWORD: ci_root_pass
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pci_root_pass"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  test:
+    # VANTAGGIO: Torniamo all'immagine slim!
+    image: python:3.10-slim
+    
+    working_dir: /app
+    volumes:
+      - .:/app
+    
+    environment:
+      # Fondamentale: deve puntare al file con il monkey-patching
+      DJANGO_SETTINGS_MODULE: django_project.production_settings
+      DJANGO_SECRET_KEY: ci-test-key
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ci_root_pass
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: blog
+      
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # COMANDO:
+    # 1. Installiamo 'gcc' SOLO per compilare uWSGI (presente nei requirements).
+    # 2. NON installiamo 'libmysqlclient-dev' (la prova del nove che PyMySQL funziona).
+    command: >
+      bash -c "
+        apt-get update && 
+        apt-get install -y gcc python3-dev &&
+        
+        pip install --upgrade pip &&
+        pip install -r requirements.txt &&
+        pip install coverage &&
+        pip install cryptography &&  # Per risolvere un errore di importazione di PyMySQL
+        # Per la sintassi di YAML lasciare questa riga vuota evita che il resto del comando venga interpretato come parte del comando precedente
+
+        
+
+        python manage.py migrate --noinput &&
+        coverage run --source='.' manage.py test accounts articles pages --verbosity=2 &&
+        coverage report
+      "
+
+
+
+
+
+# Questo "script" Python è un modo semplice per aspettare che MySQL sia pronto prima di eseguire i test.
+# Non è necessario nel docker compose perché usiamo 'depends_on' con 'condition: service_healthy', 
+# ma ho provato comunque a farlo funzionare in quanto l'ho poi riutilizzato nella pipeline GitLab CI (dove non possiamo usare 'depends_on').  
+# echo '
+# import time, pymysql, sys, os
+# for i in range(30):
+#     try:
+#       pymysql.connect(
+#         host=os.environ[\"MYSQL_HOST\"], 
+#         user=os.environ[\"MYSQL_USER\"], 
+#         password=os.environ[\"MYSQL_PASSWORD\"],
+#         database=os.environ[\"MYSQL_DATABASE\"]
+#       )
+#       print(\"MySQL ready!\")
+#       sys.exit(0)
+#     except Exception as e:
+#       print(f\"Waiting... {e}\")
+#       time.sleep(2)
+# sys.exit(1)' > wait_db.py &&
+#   python3 wait_db.py &&
