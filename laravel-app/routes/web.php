@@ -119,3 +119,7 @@ Route::delete('/ideas', function () {
     Idea::truncate();
 });
 
+Route::get('/register', [\App\Http\Controllers\Auth\RegistredUserController::class, 'create']);
+
+Route::post('/register', [\App\Http\Controllers\Auth\RegistredUserController::class, 'store']);
+
