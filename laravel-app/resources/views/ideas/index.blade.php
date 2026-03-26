@@ -20,7 +20,7 @@
         <h2 class="text-lg font-medium leading-6 text-white">Your Ideas</
         <ul>
             @foreach ($ideas as $idea)
-                <li>{{ $idea->description }}</li>
+                <li><a href="/ideas/{{ $idea->id }}" class="text-blue-500 hover:underline">{{ $idea->description }}</a></li>
             @endforeach
         </ul>
     @else

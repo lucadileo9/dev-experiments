@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\Idea;
 
 Route::get('/', function () {
     return view('welcome',
@@ -26,22 +27,30 @@ Route::view('/contact', 'contact', [
     'title' => 'Contact Us'
 ]);
 
+// Index
 Route::get('/ideas', function () {
     // $ideas = session()->get('ideas', []); 
     // now let's use the database instead of the session
-    // $ideas = \Illuminate\Support\Facades\DB::table('ideas')->get();
+    $ideas = \Illuminate\Support\Facades\DB::table('ideas')->get();
 
     // $ideas = \Illuminate\Support\Facades\DB::table('ideas')->where('status', 'pending')->get();
 
-    $ideas = \App\Models\Idea::where('status', 'pending')->get();
-    return view('ideas', [
+    // $ideas = \App\Models\Idea::where('status', 'pending')->get();
+    return view('ideas/index', [
         'ideas' => $ideas
     ]);
 });
 
+// Store
 Route::post('/ideas', function () {
-    $idea = request('idea');
-    session()->push('ideas', $idea);
+    // $idea = request('idea');
+    // session()->push('ideas', $idea);
+
+    // dd(request()->all());
+    Idea::create([
+        'description' => request('idea'),
+        'status' => 'pending'
+    ]);
     return redirect('/ideas')->with('message', 'Idea submitted successfully!');
 
     // dump($_REQUEST);
@@ -72,7 +81,41 @@ Route::get('/ideas', function () {
 
 Route::get('/ideas', function (Request $request) {
     $idea = $request->idea;
-
-
-
     */
+
+// Show
+Route::get('/ideas/{idea}', function (Idea $idea) {
+    return view('ideas/show', [
+        'idea' => $idea
+    ]);
+});
+
+// Edit
+Route::get('/ideas/{idea}/edit', function (Idea $idea) {
+
+    return view('ideas/edit', [
+            'idea' => $idea
+        ]);
+});
+
+// Update
+Route::patch('/ideas/{idea}/', function (Idea $idea) {
+    // dd(request()->all());
+    $idea->update([
+        'description' => request('idea')
+    ]);
+    return redirect("/ideas/{$idea->id}")->with('message', 'Idea updated successfully!');
+});
+
+// Destroy
+Route::delete('/ideas/{idea}', function (Idea $idea) {
+    $idea->delete();
+    return redirect('/ideas')->with('message', 'Idea deleted successfully!');
+});
+
+
+// Destroy All
+Route::delete('/ideas', function () {
+    Idea::truncate();
+});
+
