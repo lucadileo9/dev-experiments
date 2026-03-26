@@ -23,6 +23,13 @@
             <li><a href="/contact">Contact</a></li>
             <li><a href="/ideas">Ideas</a></li>
             <li><a href="/register">Register</a></li>
+            <li><a href="/login">Login</a></li>
+            @if(auth()->check())
+            <form action="{{ route('logout') }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="text-white hover:text-gray-300">Logout</button>
+            </form>
+            @endif
         </ul>
     </nav>
 
