@@ -32,6 +32,6 @@ class RegistredUserController extends Controller
         ]);
 
         Auth::login($user);
-        return redirect('/');
+        return redirect('/ideas');
     }
 }
