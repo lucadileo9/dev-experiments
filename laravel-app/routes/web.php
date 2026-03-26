@@ -29,7 +29,11 @@ Route::view('/contact', 'contact', [
 Route::get('/ideas', function () {
     // $ideas = session()->get('ideas', []); 
     // now let's use the database instead of the session
-    $ideas = \Illuminate\Support\Facades\DB::table('ideas')->get();
+    // $ideas = \Illuminate\Support\Facades\DB::table('ideas')->get();
+
+    // $ideas = \Illuminate\Support\Facades\DB::table('ideas')->where('status', 'pending')->get();
+
+    $ideas = \App\Models\Idea::where('status', 'pending')->get();
     return view('ideas', [
         'ideas' => $ideas
     ]);
