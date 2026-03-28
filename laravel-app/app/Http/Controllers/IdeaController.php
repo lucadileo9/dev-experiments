@@ -6,6 +6,7 @@ use App\Http\Requests\IdeaRequest;
 use App\Models\Idea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class IdeaController extends Controller
 {
@@ -54,6 +55,7 @@ class IdeaController extends Controller
     // Route Model Binding: Laravel resolve automatically the Idea instance based on the ID in the route
     public function show(Idea $idea)
     {
+        Gate::authorize('view-idea', $idea); // this will check if the user is authorized to view the idea, if not it will throw a 403 error
         return view('ideas.show', compact('idea'));
     }
 
