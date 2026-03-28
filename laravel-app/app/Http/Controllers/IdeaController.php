@@ -7,7 +7,7 @@ use App\Models\Idea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-
+use App\Notifications\IdeaCreated;
 class IdeaController extends Controller
 {
     /**
@@ -35,11 +35,14 @@ class IdeaController extends Controller
      */
     public function store(IdeaRequest $request)
     {
-        Idea::create([
+        $idea = Idea::create([
             'description' => $request->description,
             'status' => 'pending',
             'user_id' => Auth::id()
         ]);
+
+        auth()->user()->notify(new IdeaCreated($idea));
+
         
         return redirect('/ideas')->with('success', 'Idea creata con successo!');
     }
