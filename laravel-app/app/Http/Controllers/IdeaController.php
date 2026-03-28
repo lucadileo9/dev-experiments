@@ -43,38 +43,41 @@ class IdeaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    // public function show(string $id)
+    // {
+    //     $idea = Idea::findOrFail($id);
+    //     return view('ideas.show', compact('idea'));
+    // }
+    // Route Model Binding: Laravel resolve automatically the Idea instance based on the ID in the route
+    public function show(Idea $idea)
     {
-        $idea = Idea::findOrFail($id);
         return view('ideas.show', compact('idea'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Idea $idea)
     {
-        $idea = Idea::findOrFail($id);
         return view('ideas.edit', compact('idea'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(IdeaRequest $request, string $id)
+    public function update(IdeaRequest $request, Idea $idea)
     {
-        $idea = Idea::findOrFail($id);
         $idea->update($request->validated());
         
-        return redirect("/ideas/{$id}")->with('success', 'Idea aggiornata con successo!');
+        return redirect("/ideas/{$idea->id}")->with('success', 'Idea aggiornata con successo!');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Idea $idea)
     {
-        Idea::destroy($id);
+        $idea->delete();
         
         return redirect('/ideas')->with('success', 'Idea eliminata con successo!');
     }
