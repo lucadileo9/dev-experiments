@@ -14,8 +14,11 @@ class IdeaController extends Controller
      */
     public function index()
     {
-        $ideas = Idea::all();
-        return view('ideas.index', compact('ideas'));
+        // $ideas = Idea::all(); this is not safe because everyone can see all the ideas, even those created by other users
+       // $ideas = Idea::where('user_id', Auth::id())->get(); // this way we only get the ideas created by the authenticated user
+       // but still there are better ways to do this, using Eloquent relationships and eager loading
+        $ideas = Auth::user()->ideas()->latest()->get(); // this way we get the ideas created by the authenticated user, ordered by creation date
+       return view('ideas.index', compact('ideas'));
     }
 
     /**
