@@ -1,4 +1,6 @@
 <x-layout>
-    <h1>About Us</h1>
-    <p>{{ $content }}</p>
+    <x-section>
+        <x-title>About Us</x-title>
+        <p class="text-lg">{{ $content }}</p>
+    </x-section>
 </x-layout>
