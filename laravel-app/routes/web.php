@@ -71,7 +71,7 @@ Route::middleware('auth')->prefix('/ideas')->group(function () {
         
         // Delete idea
         Route::delete('/{idea}', [IdeaController::class, 'destroy'])
-            ->name('ideas.destroy');
+            ->name('ideas.destroy')->middleware('can:delete,idea'); // this will check if the user is authorized to delete the idea, if not it will throw a 403 error
 
         // Logout
         Route::post('/logout', [SessionController::class, 'destroy'])

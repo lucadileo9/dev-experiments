@@ -64,6 +64,8 @@ class IdeaController extends Controller
      */
     public function edit(Idea $idea)
     {
+        // this search for the 'update' method in the IdeaPolicy and check if the user is authorized to update the idea, if not it will throw a 403 error
+        Gate::authorize('update', $idea); 
         return view('ideas.edit', compact('idea'));
     }
 
