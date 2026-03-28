@@ -10,7 +10,9 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{{ $title }}</title>
     {{-- <link rel="stylesheet" href="./style.css"> --}}
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
 
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
   </head>
