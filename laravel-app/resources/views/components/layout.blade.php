@@ -23,10 +23,6 @@
         {{ $slot }}
     </main>
 
-    <footer class="footer footer-center p-4 bg-base-300 text-base-content mt-auto">
-        <aside>
-            <p>Copyright © {{ date('Y') }} - All rights reserved by DevExperiments</p>
-        </aside>
-    </footer>
+    <x-footer />
   </body>
 </html>
