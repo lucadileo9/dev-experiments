@@ -13,14 +13,13 @@
 
             <form action="/ideas" method="POST">
                 @csrf
-                <div class="form-control w-full">
-                    <textarea 
-                        id="description" 
-                        name="description" 
-                        rows="3" 
-                        class="textarea textarea-bordered textarea-lg w-full focus:textarea-primary transition-all" 
-                        placeholder="E.g., 'I want to build a revolutionary portal...'"></textarea>
-                </div>
+
+                <x-form.textarea 
+                    name="description" 
+                    label="Idea Description" 
+                    placeholder="E.g., 'I want to build a revolutionary portal...'" 
+                    required="true" 
+                />
                 
                 <div class="card-actions justify-end mt-6">
                     <button type="submit" class="btn btn-primary btn-wide shadow-lg shadow-primary/30">

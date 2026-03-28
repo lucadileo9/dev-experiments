@@ -1,14 +1,24 @@
-<x-layout title="Home">
-    <h1>Your ideas here</h1>
+<x-layout title="View Idea">
+    <x-section class="max-w-2xl mx-auto mt-10">
+        <x-title>Idea Details</x-title>
 
-    <div class="mt-10">
-        <p class="text-white mb-4">{{ $idea->description }}</p>
-        <p class="text-gray-400 text-sm mb-4">
-            <strong>Status:</strong> {{ $idea->status }}
-        </p>
-    </div>
-    
-    <button class="mt-8 rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
-        <a href="/ideas/{{ $idea->id }}/edit" class="no-underline text-white">Edit</a>
-    </button>
+        <div class="mt-6">
+            <div class="bg-base-100 p-6 rounded-box shadow-inner mb-6">
+                <p class="text-xl text-base-content leading-relaxed">{{ $idea->description }}</p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-base-content/70">Status:</span>
+                <span class="badge {{ $idea->status === 'completed' ? 'badge-success' : 'badge-neutral' }} badge-lg">
+                    {{ ucfirst($idea->status) }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="mt-10 flex gap-4">
+            <a href="/ideas/{{ $idea->id }}/edit" class="btn btn-primary">Edit Idea</a>
+            <a href="/ideas" class="btn btn-ghost">Back to List</a>
+        </div>
+    </x-section>
 </x-layout>
+
