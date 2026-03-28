@@ -1,0 +1,25 @@
+{
+    "name": "ecoders/notes-app",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Luca Di Leo",
+            "email": "lucadileo70@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Core\\": "Core/",
+            "Http\\": "Http/",
+            "OOP\\": "OOP/"
+        }
+    },
+    "require-dev": {
+        "pestphp/pest": "^4.4"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}
