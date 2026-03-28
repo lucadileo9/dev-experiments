@@ -31,11 +31,10 @@ class IdeaController extends Controller
      */
     public function store(IdeaRequest $request)
     {
-        dd(Auth::id());
         Idea::create([
             'description' => $request->description,
             'status' => 'pending',
-            'id' => Auth::id()
+            'user_id' => Auth::id()
         ]);
         
         return redirect('/ideas')->with('success', 'Idea creata con successo!');

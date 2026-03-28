@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Idea extends Model
 {
     protected $fillable = [
-        'description'
+        'description',
+        'status',
+        'user_id',
     ];
 
     public function user()
