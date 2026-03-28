@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Idea;
+
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,11 +17,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $me = User::factory()->create([
+            'name' => 'luca',
+            'email' => 'luca@luca.com',
+            'password' => bcrypt('luca'),
         ]);
+
+        Idea::factory(5)->create([
+            'user_id' => $me->id
+        ]);
+
+        User::factory(10)->hasIdeas(3)->create();
     }
 }
