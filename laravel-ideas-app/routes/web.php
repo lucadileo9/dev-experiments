@@ -1,10 +1,28 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\IdeaController;
 use App\Models\Idea;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    // $ideas = Idea::latest()->take(6)->get();
+    $ideas = Idea::with('user')->latest()->take(6)->get();
 
-    return view('welcome', );
+    return view('welcome', compact('ideas'));
+});
+
+// Ideas routes
+Route::resource('ideas', IdeaController::class)->only(['index', 'show']);
+Route::resource('ideas', IdeaController::class)->only(['create', 'store', 'edit', 'update', 'destroy'])->middleware('auth');
+
+// Auth routes
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
