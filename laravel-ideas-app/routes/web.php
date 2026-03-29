@@ -1,7 +1,10 @@
 <?php
 
+use App\Models\Idea;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    // $ideas = Idea::latest()->take(6)->get();
+
+    return view('welcome', );
 });

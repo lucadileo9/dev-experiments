@@ -1,18 +1,54 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ $title ?? 'Laravel Ideas App' }}</title>
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased bg-gray-50 text-gray-900 flex flex-col min-h-screen">
-        <x-navbar />
-        
-        <main class="flex-grow container mx-auto px-4 py-8">
-            {{ $slot }}
-        </main>
+@props([
+    'title' => 'My Website'
+])
 
-        <x-footer />
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{{ $title }}</title>
+    
+    <!-- Imposta il tema prima del render per evitare sfarfallii -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dim';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+  </head>
+  <body class="bg-base-100 text-base-content flex flex-col min-h-screen">
+    
+    <x-layouts.navbar />
+    <x-ui.flash />
+
+    <main class="flex-grow mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 w-full">
+        {{ $slot }}
+    </main>
+
+    <x-layouts.footer />
+
+    <!-- Script per gestire il salvataggio dei temi -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeControllers = document.querySelectorAll('.theme-controller');
+            const currentTheme = localStorage.getItem('theme') || 'dim';
+            
+            themeControllers.forEach(controller => {
+                if (controller.value === currentTheme) {
+                    controller.checked = true;
+                }
+                
+                controller.addEventListener('change', (e) => {
+                    const newTheme = e.target.value;
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                });
+            });
+        });
+    </script>
+  </body>
 </html>
