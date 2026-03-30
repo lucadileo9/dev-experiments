@@ -5,32 +5,19 @@
         <p class="text-lg opacity-70">A safe space to jot down everything that comes to your mind.</p>
     </div>
 
-    <div class="card bg-base-200 shadow-md border border-base-300 mb-12 max-w-2xl mx-auto w-full">
-        <div class="card-body">
-            <h2 class="card-title text-2xl font-bold mb-4">What's on your mind?</h2>
-            
-            <x-form.errors :errors="$errors" />
+    <x-ui.section class="max-w-2xl mx-auto mt-8">
+        <x-ui.title>Proponi una Nuova Idea</x-ui.title>
 
-            <form action="/ideas" method="POST">
-                @csrf
+        <x-ideas.form 
+            :action="route('ideas.store')"
+            submitText="Save Idea"
+            method="POST"
+        />
+    </x-ui.section>
 
-                <x-form.textarea 
-                    name="description" 
-                    label="Idea Description" 
-                    placeholder="E.g., 'I want to build a revolutionary portal...'" 
-                    required="true" 
-                />
-                
-                <div class="card-actions justify-end mt-6">
-                    <button type="submit" class="btn btn-primary btn-wide shadow-lg shadow-primary/30">
-                        + Save Idea
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <div class="divider mb-12">Your Saved Ideas</div>
+    <div class="divider mb-8">Your Saved Ideas</div>
+
 
     @if ($ideas->count())
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
