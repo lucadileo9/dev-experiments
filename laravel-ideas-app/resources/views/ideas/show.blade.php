@@ -1,5 +1,12 @@
 <x-layouts.app title="View Idea">
     <x-ui.section class="max-w-2xl mx-auto mt-10">
+
+    @if ($idea->image_path)
+
+        <div class="mb-6">
+            <img src="{{ asset('storage/' . $idea->image_path) }}" alt="Featured Image" class="w-full h-auto rounded-lg shadow-md">
+        </div>
+    @endif
         <div class="flex justify-between items-start mb-6">
             <div>
                 <x-ui.title>{{ $idea->title }}</x-ui.title>

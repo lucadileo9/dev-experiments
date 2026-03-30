@@ -13,6 +13,7 @@
     method="POST"
     x-data="{ newLink: '', links: @json($idea?->links ?? []), 
     newStep: '', steps: @json($idea?->steps ?? []) }"
+    enctype="multipart/form-data"
 >
     @csrf
     @if($method === 'PATCH')
@@ -176,6 +177,12 @@
             </div>
         </div>
     </template>
+
+    <div class="space-y-2">
+        <label for="image" class="label">Featured Image</label>
+        <input type="file" name="image" accept="image/*" />
+        <x-form.errors :errors="$errors" />
+    </div>
 
 
     <div class="mt-8 flex items-center {{ $showDeleteButton ? 'justify-between' : 'justify-end' }}">

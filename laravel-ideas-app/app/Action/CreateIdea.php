@@ -16,6 +16,9 @@ class CreateIdea
 			'title', 'description', 'status', 'links',
 		])->toArray();
 
+		if ($attributes['image'] ?? false) {
+			$data['image_path'] = $attributes['image']->store('ideas', 'public');
+		}
 
 		$idea = $user->ideas()->create($data);
 
