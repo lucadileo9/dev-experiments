@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Action\CreateIdea;
 use App\Http\Requests\StoreIdeaRequest;
 use App\IdeaStatus;
 use App\Models\Idea;
@@ -40,15 +41,9 @@ class IdeaController extends Controller
         return view('ideas.create');
     }
 
-    public function store(StoreIdeaRequest $request)
+    public function store(StoreIdeaRequest $request, CreateIdea $createIdea)
     {
-        $idea = Auth::user()->ideas()->create(
-            $request->safe()->except('steps')
-        );
-
-        $idea->steps()->createMany(
-            collect($request->safe()->only('steps')['steps'] ?? [])->map(fn ($step) => ['title' => $step])->toArray()
-        );
+        $idea = $createIdea->handle($request->validated());
 
         return redirect()->route('ideas.show', $idea)
             ->with('success', 'La tua idea è stata creata con successo!');
