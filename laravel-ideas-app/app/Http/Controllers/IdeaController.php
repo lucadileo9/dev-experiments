@@ -4,12 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Idea;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class IdeaController extends Controller
 {
     public function index()
     {
-        $ideas = Idea::with('user')->latest()->paginate(12);
+        $query = Auth::user()->ideas();
+
+        if ($status = request('status')) {
+            $query->where('status', $status);
+        }
+
+        $ideas = $query->get();
 
         return view('ideas.index', compact('ideas'));
     }
@@ -39,5 +46,38 @@ class IdeaController extends Controller
     public function show(Idea $idea)
     {
         return view('ideas.show', compact('idea'));
+    }
+
+    public function edit(Idea $idea)
+    {
+        return view('ideas.edit', compact('idea'));
+    }
+
+    public function update(Request $request, Idea $idea)
+    {
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255', 'min:5'],
+            'description' => ['required', 'string', 'min:10'],
+            'status' => ['required', 'in:pending,approved,rejected'], //this should use the IdeaStatus enum, but for simplicity, I'm using a string validation rule here
+        ]);
+
+        $idea->update([
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'status' => $validated['status'],
+            'created_at' => now(),
+
+        ]);
+
+        return redirect()->route('ideas.show', $idea)
+            ->with('success', 'La tua idea è stata aggiornata con successo!');
+    }
+
+    public function destroy(Idea $idea)
+    {
+        $idea->delete();
+
+        return redirect()->route('ideas.index')
+            ->with('success', 'La tua idea è stata eliminata!');
     }
 }
