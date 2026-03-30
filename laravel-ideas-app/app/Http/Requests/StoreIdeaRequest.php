@@ -12,6 +12,12 @@ class StoreIdeaRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // If the idea exists, check if the user can update it
+        if ($idea = $this->route('idea')) {
+            return $this->user()->can('update', $idea);
+        }
+
+        // Per la creazione, l'utente deve solo essere autenticato
         return auth()->check();
     }
 
