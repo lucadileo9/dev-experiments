@@ -26,6 +26,22 @@
                 </ul>
             </div>
         @endif
+
+{{-- Qui sarebbe il caso di gestire il checkbox con relativo cambio di stato dello step --}}
+        @if($idea->steps)
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-4">Steps</h3>
+                <ul class="list-disc list-inside space-y-2">
+                    @foreach($idea->steps as $step)
+                        <li>
+                            {{ $step->title }}
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+
         
         <div class="mt-10 flex gap-4">
             <a href="/ideas/{{ $idea->id }}/edit" class="btn btn-primary">Edit Idea</a>
