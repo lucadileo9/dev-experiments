@@ -10,7 +10,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{{ $title }}</title>
     
-    <!-- Imposta il tema prima del render per evitare sfarfallii -->
+    <!-- Set theme before render to avoid flickering -->
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dim';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -31,7 +31,7 @@
 
     <x-layouts.footer />
 
-    <!-- Script per gestire il salvataggio dei temi -->
+    <!-- Script to handle saving themes -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const themeControllers = document.querySelectorAll('.theme-controller');

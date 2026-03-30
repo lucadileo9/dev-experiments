@@ -34,7 +34,7 @@
             </div>
         @endif
 
-{{-- Qui sarebbe il caso di gestire il checkbox con relativo cambio di stato dello step --}}
+{{-- Here we should handle the checkbox with the corresponding step status change --}}
         @if($idea->steps)
             <div class="mt-6">
                 <h3 class="text-lg font-semibold mb-4">Steps</h3>
