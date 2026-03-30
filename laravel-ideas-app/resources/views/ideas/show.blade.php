@@ -10,7 +10,7 @@
             <div class="flex items-center gap-2">
                 <span class="font-semibold text-base-content/70">Status:</span>
                 <span class="badge {{ $idea->status === 'completed' ? 'badge-success' : 'badge-neutral' }} badge-lg">
-                    {{ ucfirst($idea->status) }}
+                    {{ ucfirst($idea->status->label()) }}
                 </span>
             </div>
         </div>

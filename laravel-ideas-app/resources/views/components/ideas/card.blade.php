@@ -6,9 +6,9 @@
         <p class="text-base-content/70 italic break-words mt-2 mb-4">"{{ $idea->description }}"</p>
         
         <div class="card-actions justify-between items-center mt-auto">
-            <div class="badge {{ $idea->status === 'pending' ? 'badge-warning' : 'badge-success' }} badge-outline font-semibold">
+            {{-- <div class="badge {{ $idea->status === 'pending' ? 'badge-warning' : 'badge-success' }} badge-outline font-semibold">
                 {{ ucfirst($idea->status ?? 'pending') }}
-            </div>
+            </div> --}}
             <a href="/ideas/{{ $idea->id }}" class="btn btn-primary btn-sm">View Details &rarr;</a>
         </div>
     </div>
