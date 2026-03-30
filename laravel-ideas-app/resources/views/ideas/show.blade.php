@@ -13,6 +13,19 @@
                 <p class="text-xl text-base-content leading-relaxed">{{ $idea->description }}</p>
             </div>
         </div>
+
+        @if($idea->links)
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-4">Related Links</h3>
+                <ul class="list-disc list-inside space-y-2">
+                    @foreach($idea->links as $link)
+                        <li>
+                            <a href="{{ $link }}" target="_blank" class="text-primary hover:underline break-all">{{ $link }}</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         
         <div class="mt-10 flex gap-4">
             <a href="/ideas/{{ $idea->id }}/edit" class="btn btn-primary">Edit Idea</a>

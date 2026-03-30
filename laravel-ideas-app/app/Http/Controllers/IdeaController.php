@@ -45,12 +45,15 @@ class IdeaController extends Controller
             'title' => ['required', 'string', 'max:255', 'min:5'],
             'description' => ['required', 'string', 'min:10'],
             'status' => ['required', 'in:pending,in_progress,completed'],
+            'links' => ['nullable', 'array'],
+            'links.*' => ['url'],
         ]);
 
         $idea = $request->user()->ideas()->create([
             'title' => $validated['title'],
             'description' => $validated['description'],
             'status' => $validated['status'],
+            'links' => $validated['links'] ?? [],
         ]);
 
         return redirect()->route('ideas.show', $idea)
