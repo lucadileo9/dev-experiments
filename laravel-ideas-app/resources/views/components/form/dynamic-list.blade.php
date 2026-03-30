@@ -6,9 +6,9 @@
     'type' => 'text'
 ])
 
-<div class="form-control w-full mb-4" x-data="{ 
-    newItem: '', 
-    items: @json($items ?? []) 
+<div class="form-control w-full mb-4" x-data="{
+    newItem: '',
+    items: {{ json_encode($items ?? []) }}
 }">
     <label class="label" for="new-{{ $name }}">
         <span class="label-text font-semibold">{{ $label }}</span>
