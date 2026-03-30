@@ -46,6 +46,10 @@ class IdeaController extends Controller
             $request->safe()->except('steps')
         );
 
+        $idea->steps()->createMany(
+            collect($request->safe()->only('steps')['steps'] ?? [])->map(fn ($step) => ['title' => $step])->toArray()
+        );
+
         return redirect()->route('ideas.show', $idea)
             ->with('success', 'La tua idea è stata creata con successo!');
     }
