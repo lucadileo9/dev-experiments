@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\IdeaStatus;
 use App\Models\Idea;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -22,7 +23,8 @@ class IdeaFactory extends Factory
             'user_id' => User::factory(),
             'title' => fake()->sentence(),
             'description' => fake()->paragraph(3),
-            'status' => fake()->randomElement(['pending', 'approved', 'rejected']),
+            'links' => fake()->url(),
+            'status' => fake()->randomElement([IdeaStatus::COMPLETED, IdeaStatus::IN_PROGRESS, IdeaStatus::PENDING]),
         ];
     }
 }
