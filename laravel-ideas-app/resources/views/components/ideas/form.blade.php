@@ -8,7 +8,11 @@
 
 <x-form.errors :errors="$errors" />
 
-<form action="{{ $action }}" method="POST">
+<form 
+    action="{{ $action }}" 
+    method="POST"
+    x-data="{ newLink: '', links: @json($idea?->links ?? []) }"
+>
     @csrf
     @if($method === 'PATCH')
         @method('PATCH')
@@ -60,6 +64,62 @@
         </select>
     </div>
     
+    <div class="form-control w-full mb-4">
+        <label class="label" for="new-link">
+            <span class="label-text font-semibold">References (Optional)</span>
+        </label>
+        
+        <div class="flex gap-2 items-end">
+            <input
+                id="new-link"
+                x-model="newLink"
+                type="url"
+                placeholder="https://example.com"
+                autocomplete="url"
+                class="input input-bordered flex-1 focus:input-primary"
+                spellcheck="false"
+            >
+            <button
+                type="button"
+                @click="if(newLink.trim().length > 0 && !links.includes(newLink.trim())) { links.push(newLink.trim()); newLink = ''; }"
+                :disabled="newLink.trim().length === 0"
+                class="btn btn-outline"
+            >
+                + Add
+            </button>
+        </div>
+    </div>
+
+
+    <!-- TO DO: this two probably should be fused together or moved in an other components -->
+    <!-- Hidden inputs for links submission -->
+    <template x-for="link in links" :key="link">
+        <input type="hidden" name="links[]" :value="link">
+    </template>
+    <!-- Display links list -->
+    <template x-if="links.length > 0">
+        <div class="form-control w-full mb-4">
+            <label class="label">
+                <span class="label-text font-semibold">Added References</span>
+            </label>
+            <div class="space-y-2">
+                <template x-for="(link, index) in links" :key="index">
+                    <div class="flex items-center justify-between bg-base-200 p-3 rounded-lg border border-base-300">
+                        <a :href="link" target="_blank" class="link link-primary break-all flex-1" x-text="link"></a>
+                        <button
+                            type="button"
+                            @click="links.splice(index, 1)"
+                            class="btn btn-sm btn-ghost ml-2"
+                            title="Remove this link"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
     <div class="mt-8 flex items-center {{ $showDeleteButton ? 'justify-between' : 'justify-end' }}">
         <div class="flex gap-4">
             <button type="submit" class="btn btn-primary">{{ $submitText }}</button>
@@ -83,3 +143,4 @@
         @method('DELETE')
     </form>
 @endif
+
