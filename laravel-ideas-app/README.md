@@ -56,3 +56,15 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## TODO:
+
+- Refactor the form to make it more modular.
+- create the modal, instead that the dedicated pages
+- make everything in english
+- checkbox and status update for steps
+- refactor of the page that show the idea
+- remove the non existent page from the navbar
+- refactor of the filter for status
+- refactor of the 2 forms of login and register, since they are very similar
+- add authorization in the app.
