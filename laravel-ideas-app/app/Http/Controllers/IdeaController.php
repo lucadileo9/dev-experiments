@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreIdeaRequest;
 use App\IdeaStatus;
 use App\Models\Idea;
 use Illuminate\Http\Request;
@@ -39,22 +40,11 @@ class IdeaController extends Controller
         return view('ideas.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreIdeaRequest $request)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255', 'min:5'],
-            'description' => ['required', 'string', 'min:10'],
-            'status' => ['required', 'in:pending,in_progress,completed'],
-            'links' => ['nullable', 'array'],
-            'links.*' => ['url'],
-        ]);
-
-        $idea = $request->user()->ideas()->create([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'status' => $validated['status'],
-            'links' => $validated['links'] ?? [],
-        ]);
+        $idea = Auth::user()->ideas()->create(
+            $request->safe()->except('steps')
+        );
 
         return redirect()->route('ideas.show', $idea)
             ->with('success', 'La tua idea è stata creata con successo!');
@@ -70,21 +60,11 @@ class IdeaController extends Controller
         return view('ideas.edit', compact('idea'));
     }
 
-    public function update(Request $request, Idea $idea)
+    public function update(StoreIdeaRequest $request, Idea $idea)
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255', 'min:5'],
-            'description' => ['required', 'string', 'min:10'],
-            'status' => ['required', 'in:pending,in_progress,completed'],
-        ]);
+        $validated = $request->safe()->except('steps');
 
-        $idea->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'status' => $validated['status'],
-            'created_at' => now(),
-
-        ]);
+        $idea->update($validated);
 
         return redirect()->route('ideas.show', $idea)
             ->with('success', 'La tua idea è stata aggiornata con successo!');
