@@ -7,8 +7,6 @@
             @auth
                 <li><a href="/ideas" class="font-semibold">My Ideas</a></li>
             @endauth
-            <li><a href="/about">About</a></li>
-            <li><a href="/contact">Contact</a></li>
             
             <!-- Switch Theme (All DaisyUI Themes Dropdown) -->
             <li>
