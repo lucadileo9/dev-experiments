@@ -31,12 +31,13 @@ class IdeaController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255', 'min:5'],
             'description' => ['required', 'string', 'min:10'],
+            'status' => ['required', 'in:pending,in_progress,completed'],
         ]);
 
         $idea = $request->user()->ideas()->create([
             'title' => $validated['title'],
             'description' => $validated['description'],
-            'status' => 'pending',
+            'status' => $validated['status'],
         ]);
 
         return redirect()->route('ideas.show', $idea)
@@ -58,7 +59,7 @@ class IdeaController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255', 'min:5'],
             'description' => ['required', 'string', 'min:10'],
-            'status' => ['required', 'in:pending,approved,rejected'], //this should use the IdeaStatus enum, but for simplicity, I'm using a string validation rule here
+            'status' => ['required', 'in:pending,in_progress,completed'],
         ]);
 
         $idea->update([
