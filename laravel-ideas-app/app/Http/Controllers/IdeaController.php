@@ -8,6 +8,7 @@ use App\IdeaStatus;
 use App\Models\Idea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class IdeaController extends Controller
 {
@@ -36,44 +37,42 @@ class IdeaController extends Controller
         return view('ideas.index', compact('ideas', 'statusCounts', 'validatedStatus'));
     }
 
-    public function create()
-    {
-        return view('ideas.create');
-    }
-
     public function store(StoreIdeaRequest $request, CreateIdea $createIdea)
     {
         $idea = $createIdea->handle($request->validated());
 
         return redirect()->route('ideas.show', $idea)
-            ->with('success', 'La tua idea è stata creata con successo!');
+            ->with('success', 'Your idea has been created successfully!');
     }
 
     public function show(Idea $idea)
     {
-        return view('ideas.show', compact('idea'));
-    }
+        Gate::authorize('view', $idea);
 
-    public function edit(Idea $idea)
-    {
-        return view('ideas.edit', compact('idea'));
+        $idea->load('steps');
+
+        return view('ideas.show', compact('idea'));
     }
 
     public function update(StoreIdeaRequest $request, Idea $idea)
     {
+        Gate::authorize('update', $idea);
+
         $validated = $request->safe()->except('steps');
 
         $idea->update($validated);
 
         return redirect()->route('ideas.show', $idea)
-            ->with('success', 'La tua idea è stata aggiornata con successo!');
+            ->with('success', 'Your idea has been updated successfully!');
     }
 
     public function destroy(Idea $idea)
     {
+        Gate::authorize('delete', $idea);
+
         $idea->delete();
 
         return redirect()->route('ideas.index')
-            ->with('success', 'La tua idea è stata eliminata!');
+            ->with('success', 'Your idea has been deleted!');
     }
 }
