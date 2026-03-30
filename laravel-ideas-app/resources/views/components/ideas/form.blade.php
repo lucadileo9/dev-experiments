@@ -11,7 +11,8 @@
 <form 
     action="{{ $action }}" 
     method="POST"
-    x-data="{ newLink: '', links: @json($idea?->links ?? []) }"
+    x-data="{ newLink: '', links: @json($idea?->links ?? []), 
+    newStep: '', steps: @json($idea?->steps ?? []) }"
 >
     @csrf
     @if($method === 'PATCH')
@@ -119,6 +120,63 @@
             </div>
         </div>
     </template>
+
+    <div class="form-control w-full mb-4">
+        <label class="label" for="new-step">
+            <span class="label-text font-semibold">Steps (Optional)</span>
+        </label>
+        
+        <div class="flex gap-2 items-end">
+            <input
+                id="new-step"
+                x-model="newStep"
+                type="url"
+                placeholder="to do..."
+                autocomplete="url"
+                class="input input-bordered flex-1 focus:input-primary"
+                spellcheck="false"
+            >
+            <button
+                type="button"
+                @click="if(newStep.trim().length > 0 && !steps.includes(newStep.trim())) { steps.push(newStep.trim()); newStep = ''; }"
+                :disabled="newStep.trim().length === 0"
+                class="btn btn-outline"
+            >
+                + Add
+            </button>
+        </div>
+    </div>
+
+
+    <!-- TO DO: this two probably should be fused together or moved in an other components -->
+    <!-- Hidden inputs for steps submission -->
+    <template x-for="step in steps" :key="step">
+        <input type="hidden" name="steps[]" :value="step">
+    </template>
+    <!-- Display steps list -->
+    <template x-if="steps.length > 0">
+        <div class="form-control w-full mb-4">
+            <label class="label">
+                <span class="label-text font-semibold">Added Steps</span>
+            </label>
+            <div class="space-y-2">
+                <template x-for="(step, index) in steps" :key="index">
+                    <div class="flex items-center justify-between bg-base-200 p-3 rounded-lg border border-base-300">
+                        <a :href="step" target="_blank" class="step step-primary break-all flex-1" x-text="step"></a>
+                        <button
+                            type="button"
+                            @click="steps.splice(index, 1)"
+                            class="btn btn-sm btn-ghost ml-2"
+                            title="Remove this step"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </template>
+
 
     <div class="mt-8 flex items-center {{ $showDeleteButton ? 'justify-between' : 'justify-end' }}">
         <div class="flex gap-4">
