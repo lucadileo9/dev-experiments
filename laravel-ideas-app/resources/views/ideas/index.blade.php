@@ -5,18 +5,22 @@
         <p class="text-lg opacity-70">A safe space to jot down everything that comes to your mind.</p>
     </div>
 
-    <x-ui.section class="max-w-2xl mx-auto mt-8">
-        <x-ui.title>Propose a New Idea</x-ui.title>
+    <div class="flex justify-center mt-8">
+        <button class="btn btn-primary btn-lg shadow-lg" onclick="create_idea_modal.showModal()">
+            Propose a New Idea
+        </button>
+    </div>
 
+    <x-ui.modal id="create_idea_modal" title="Propose a New Idea">
         <x-ideas.form 
             :action="route('ideas.store')"
             submitText="Save Idea"
             method="POST"
         />
-    </x-ui.section>
+    </x-ui.modal>
 
 
-    <div class="divider mb-8">Your Saved Ideas</div>
+    <div class="divider my-12">Your Saved Ideas</div>
 
     <x-ideas.status-filter :statusCounts="$statusCounts" />
 

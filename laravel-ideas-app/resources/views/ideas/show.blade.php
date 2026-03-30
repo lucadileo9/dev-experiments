@@ -10,8 +10,19 @@
         <x-ideas.steps-list :steps="$idea->steps" />
         
         <div class="mt-10 flex gap-4">
-            <a href="{{ route('ideas.edit', $idea) }}" class="btn btn-primary">Edit Idea</a>
+            <button class="btn btn-primary" onclick="edit_idea_modal.showModal()">Edit Idea</button>
             <a href="{{ route('ideas.index') }}" class="btn btn-ghost">Back to List</a>
         </div>
+
+        <x-ui.modal id="edit_idea_modal" title="Edit Idea">
+            <x-ideas.form 
+                :idea="$idea"
+                :action="route('ideas.update', $idea)"
+                submitText="Save Changes"
+                method="PATCH"
+                :showDeleteButton="true"
+            />
+        </x-ui.modal>
+
     </x-ui.section>
 </x-layouts.app>
