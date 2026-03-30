@@ -2,23 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\IdeaStatus;
 use App\Models\Idea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class IdeaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        // Validazione dello status
+        $validatedStatus = $request->validate([
+            'status' => ['nullable', 'in:pending,in_progress,completed'],
+        ])['status'] ?? null;
+
         $query = Auth::user()->ideas();
 
-        if ($status = request('status')) {
-            $query->where('status', $status);
-        }
+        // Usare when per applicare il filtro condizionalmente
+        $ideas = $query->when($validatedStatus, function ($q, $status) {
+            $q->where('status', $status);
+        })->get();
 
-        $ideas = $query->get();
+        // Contare le idee per ogni status
+        $statusCounts = [
+            'all' => Auth::user()->ideas()->count(),
+            'pending' => Auth::user()->ideas()->where('status', IdeaStatus::PENDING)->count(),
+            'in_progress' => Auth::user()->ideas()->where('status', IdeaStatus::IN_PROGRESS)->count(),
+            'completed' => Auth::user()->ideas()->where('status', IdeaStatus::COMPLETED)->count(),
+        ];
 
-        return view('ideas.index', compact('ideas'));
+        return view('ideas.index', compact('ideas', 'statusCounts', 'validatedStatus'));
     }
 
     public function create()
