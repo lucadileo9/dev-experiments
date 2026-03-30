@@ -11,8 +11,6 @@
 <form 
     action="{{ $action }}" 
     method="POST"
-    x-data="{ newLink: '', links: @json($idea?->links ?? []), 
-    newStep: '', steps: @json($idea?->steps ?? []) }"
     enctype="multipart/form-data"
 >
     @csrf
@@ -66,144 +64,53 @@
         </select>
     </div>
     
-    <div class="form-control w-full mb-4">
-        <label class="label" for="new-link">
-            <span class="label-text font-semibold">References (Optional)</span>
-        </label>
-        
-        <div class="flex gap-2 items-end">
-            <input
-                id="new-link"
-                x-model="newLink"
-                type="url"
-                placeholder="https://example.com"
-                autocomplete="url"
-                class="input input-bordered flex-1 focus:input-primary"
-                spellcheck="false"
-            >
-            <button
-                type="button"
-                @click="if(newLink.trim().length > 0 && !links.includes(newLink.trim())) { links.push(newLink.trim()); newLink = ''; }"
-                :disabled="newLink.trim().length === 0"
-                class="btn btn-outline"
-            >
-                + Add
-            </button>
-        </div>
-    </div>
+    <x-form.dynamic-list 
+        name="links"
+        label="References (Optional)"
+        placeholder="https://example.com"
+        type="url"
+        :items="old('links', $idea ? array_values((array)($idea->links ?? [])) : [])"
+    />
 
-
-    <!-- TO DO: this two probably should be fused together or moved in an other components -->
-    <!-- Hidden inputs for links submission -->
-    <template x-for="link in links" :key="link">
-        <input type="hidden" name="links[]" :value="link">
-    </template>
-    <!-- Display links list -->
-    <template x-if="links.length > 0">
-        <div class="form-control w-full mb-4">
-            <label class="label">
-                <span class="label-text font-semibold">Added References</span>
-            </label>
-            <div class="space-y-2">
-                <template x-for="(link, index) in links" :key="index">
-                    <div class="flex items-center justify-between bg-base-200 p-3 rounded-lg border border-base-300">
-                        <a :href="link" target="_blank" class="link link-primary break-all flex-1" x-text="link"></a>
-                        <button
-                            type="button"
-                            @click="links.splice(index, 1)"
-                            class="btn btn-sm btn-ghost ml-2"
-                            title="Remove this link"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </template>
+    <x-form.dynamic-list 
+        name="steps"
+        label="Steps (Optional)"
+        placeholder="E.g., 'Do some research'"
+        type="text"
+        :items="old('steps', $idea ? $idea->steps->pluck('title')->values()->toArray() : [])"
+    />
 
     <div class="form-control w-full mb-4">
-        <label class="label" for="new-step">
-            <span class="label-text font-semibold">Steps (Optional)</span>
+        <label class="label" for="image">
+            <span class="label-text font-semibold">Featured Image (Optional)</span>
         </label>
-        
-        <div class="flex gap-2 items-end">
-            <input
-                id="new-step"
-                x-model="newStep"
-                type="url"
-                placeholder="to do..."
-                autocomplete="url"
-                class="input input-bordered flex-1 focus:input-primary"
-                spellcheck="false"
-            >
-            <button
-                type="button"
-                @click="if(newStep.trim().length > 0 && !steps.includes(newStep.trim())) { steps.push(newStep.trim()); newStep = ''; }"
-                :disabled="newStep.trim().length === 0"
-                class="btn btn-outline"
-            >
-                + Add
-            </button>
-        </div>
+        <input 
+            type="file" 
+            id="image" 
+            name="image" 
+            accept="image/*" 
+            class="file-input file-input-bordered w-full focus:file-input-primary transition-all" 
+        />
     </div>
-
-
-    <!-- TO DO: this two probably should be fused together or moved in an other components -->
-    <!-- Hidden inputs for steps submission -->
-    <template x-for="step in steps" :key="step">
-        <input type="hidden" name="steps[]" :value="step">
-    </template>
-    <!-- Display steps list -->
-    <template x-if="steps.length > 0">
-        <div class="form-control w-full mb-4">
-            <label class="label">
-                <span class="label-text font-semibold">Added Steps</span>
-            </label>
-            <div class="space-y-2">
-                <template x-for="(step, index) in steps" :key="index">
-                    <div class="flex items-center justify-between bg-base-200 p-3 rounded-lg border border-base-300">
-                        <a :href="step" target="_blank" class="step step-primary break-all flex-1" x-text="step"></a>
-                        <button
-                            type="button"
-                            @click="steps.splice(index, 1)"
-                            class="btn btn-sm btn-ghost ml-2"
-                            title="Remove this step"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </template>
-
-    <div class="space-y-2">
-        <label for="image" class="label">Featured Image</label>
-        <input type="file" name="image" accept="image/*" />
-        <x-form.errors :errors="$errors" />
-    </div>
-
 
     <div class="mt-8 flex items-center {{ $showDeleteButton ? 'justify-between' : 'justify-end' }}">
-        <div class="flex gap-4">
-            <button type="submit" class="btn btn-primary">{{ $submitText }}</button>
-            @if($idea)
-                <a href="/ideas/{{ $idea->id }}" class="btn btn-ghost">Cancel</a>
-            @else
-                <a href="{{ url()->previous() }}" class="btn btn-ghost">Cancel</a>
-            @endif
-        </div>
         @if($showDeleteButton && $idea)
             <button type="button" class="btn btn-error btn-outline" onclick="document.getElementById('delete-idea-form').submit()">
                 Delete Idea
             </button>
+        @else
+            <div></div>
         @endif
+        
+        <div class="flex gap-4">
+            <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Cancel</button>
+            <button type="submit" class="btn btn-primary">{{ $submitText }}</button>
+        </div>
     </div>
 </form>
 
 @if($showDeleteButton && $idea)
-    <form action="/ideas/{{ $idea->id }}" method="POST" class="hidden" id="delete-idea-form">
+    <form action="{{ route('ideas.destroy', $idea) }}" method="POST" class="hidden" id="delete-idea-form">
         @csrf
         @method('DELETE')
     </form>
