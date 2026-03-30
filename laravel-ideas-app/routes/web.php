@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IdeaController;
+use App\Http\Controllers\StepController;
 use App\Models\Idea;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,7 @@ Route::get('/', function () {
 // Ideas routes
 Route::middleware('auth')->group(function () {
     Route::resource('ideas', IdeaController::class);
+    Route::patch('/steps/{step}/toggle', [StepController::class, 'toggle'])->name('steps.toggle');
 });
 
 
