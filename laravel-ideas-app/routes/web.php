@@ -12,8 +12,11 @@ Route::get('/', function () {
 });
 
 // Ideas routes
-Route::resource('ideas', IdeaController::class)->only(['index', 'show']);
-Route::resource('ideas', IdeaController::class)->only(['create', 'store', 'edit', 'update', 'destroy'])->middleware('auth');
+Route::middleware('auth')->group(function () {
+    Route::resource('ideas', IdeaController::class);
+});
+
+
 
 // Auth routes
 Route::middleware('guest')->group(function () {
