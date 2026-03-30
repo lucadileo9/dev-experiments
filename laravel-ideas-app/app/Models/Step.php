@@ -15,6 +15,19 @@ class Step extends Model
         'is_completed' => false,
     ];
 
+    protected $fillable = [
+        'idea_id',
+        'title',
+        'is_completed',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_completed' => 'boolean',
+        ];
+    }
+
     public function idea(): BelongsTo
     {
         return $this->belongsTo(Idea::class);
