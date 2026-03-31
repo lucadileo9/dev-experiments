@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\IdeaStatus;
-use App\Models\Step;
+use Database\Factories\IdeaFactory;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Idea extends Model
 {
-    /** @use HasFactory<\Database\Factories\IdeaFactory> */
+    /** @use HasFactory<IdeaFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -48,6 +48,4 @@ class Idea extends Model
             $this->update(['image_path' => null]);
         }
     }
-
-    
 }

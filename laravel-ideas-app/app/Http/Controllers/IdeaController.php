@@ -7,6 +7,7 @@ use App\Action\UpdateIdea;
 use App\Http\Requests\IdeaRequest;
 use App\IdeaStatus;
 use App\Models\Idea;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -20,8 +21,7 @@ class IdeaController extends Controller
             'status' => ['nullable', 'in:pending,in_progress,completed'],
         ])['status'] ?? null;
 
-        
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = Auth::user();
         $query = $user->ideas();
 

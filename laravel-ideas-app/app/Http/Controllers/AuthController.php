@@ -22,6 +22,7 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
             return redirect()->intended('ideas')->with('success', 'Bentornato!');
         }
 
@@ -46,7 +47,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            // In Laravel 11.x User model casts password to hashed automatically, 
+            // In Laravel 11.x User model casts password to hashed automatically,
             // ma possiamo lasciarlo string perchè ci pensa da solo (oppure usiamo bcrypt).
             'password' => $validated['password'],
         ]);
