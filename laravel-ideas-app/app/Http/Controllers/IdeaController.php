@@ -75,4 +75,15 @@ class IdeaController extends Controller
         return redirect()->route('ideas.index')
             ->with('success', 'Your idea has been deleted!');
     }
+
+    public function deleteImage(Idea $idea)
+    {
+        Gate::authorize('update', $idea);
+
+        if ($idea->image_path) {
+            $idea->deleteImage();
+        }
+
+        return back()->with('success', 'The image has been deleted successfully!');
+    }
 }

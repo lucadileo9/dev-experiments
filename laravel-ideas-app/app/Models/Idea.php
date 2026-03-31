@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Idea extends Model
 {
@@ -36,6 +37,15 @@ class Idea extends Model
     public function steps(): HasMany
     {
         return $this->hasMany(Step::class);
+    }
+
+    public function deleteImage()
+    {
+        if ($this->image_path) {
+
+            Storage::disk('public')->delete($this->image_path);
+            $this->update(['image_path' => null]);
+        }
     }
 
     
