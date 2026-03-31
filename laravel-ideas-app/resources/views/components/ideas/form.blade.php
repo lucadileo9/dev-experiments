@@ -125,7 +125,6 @@
 @endif
 
 @if ($idea && $idea->image_path)
-<h1 class="text-2xl font-bold mb-4">Delete Featured Image</h1>
     <form action="{{ route('ideas.delete-image', $idea) }}" method="POST" class="hidden" id="delete-image-form">
         @csrf
         @method('DELETE')
