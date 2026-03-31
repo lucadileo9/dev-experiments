@@ -84,6 +84,14 @@
         <label class="label" for="image">
             <span class="label-text font-semibold">Featured Image (Optional)</span>
         </label>
+        @if($idea && $idea->image_path)
+            <div class="mb-4">
+                <img src="{{ asset('storage/' . $idea->image_path) }}" alt="Current Image" class="w-full h-auto rounded-lg border border-base-300">
+                <button type="submit" class="btn btn-sm btn-error btn-outline mt-2 width-full" form="delete-image-form">
+                    Remove Current Image
+                </button>
+            </div>
+        @endif
         <input 
             type="file" 
             id="image" 
@@ -95,7 +103,7 @@
 
     <div class="mt-8 flex items-center {{ $showDeleteButton ? 'justify-between' : 'justify-end' }}">
         @if($showDeleteButton && $idea)
-            <button type="button" class="btn btn-error btn-outline" onclick="document.getElementById('delete-idea-form').submit()">
+            <button type="submit" class="btn btn-error btn-outline" form="delete-idea-form">
                 Delete Idea
             </button>
         @else
@@ -111,6 +119,14 @@
 
 @if($showDeleteButton && $idea)
     <form action="{{ route('ideas.destroy', $idea) }}" method="POST" class="hidden" id="delete-idea-form">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
+
+@if ($idea && $idea->image_path)
+<h1 class="text-2xl font-bold mb-4">Delete Featured Image</h1>
+    <form action="{{ route('ideas.delete-image', $idea) }}" method="POST" class="hidden" id="delete-image-form">
         @csrf
         @method('DELETE')
     </form>

@@ -15,8 +15,8 @@ Route::get('/', function () {
 // Ideas routes
 Route::middleware('auth')->group(function () {
     Route::resource('ideas', IdeaController::class)->except(['create', 'edit']);
-
     Route::patch('/steps/{step}/toggle', [StepController::class, 'toggle'])->name('steps.toggle');
+    Route::delete('/ideas/{idea}/image', [IdeaController::class, 'deleteImage'])->name('ideas.delete-image');
 });
 
 // Auth routes
