@@ -9,7 +9,7 @@ class CreateIdea
 {
 	public function handle(array $attributes, ?User $user = null)
 	{
-		/* @var User */
+        /** @var \App\Models\User $user */
 		$user ??= Auth::user();
 
 		$data = collect($attributes)->only([
