@@ -59,12 +59,15 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ## TODO:
 
-- Refactor the form to make it more modular.
-- create the modal, instead that the dedicated pages
-- make everything in english
-- checkbox and status update for steps
-- refactor of the page that show the idea
-- remove the non existent page from the navbar
+X Refactor the form to make it more modular.
+X create the modal, instead that the dedicated pages
+X make everything in english
+X checkbox and status update for steps
+X refactor of the page that show the idea
+X remove the non existent page from the navbar
+X refactor of the 2 forms of login and register, since they are very similar
+X add authorization in the app.
+X fix the update of an idea
+
 - refactor of the filter for status
-- refactor of the 2 forms of login and register, since they are very similar
-- add authorization in the app.
+  -update the user profile
