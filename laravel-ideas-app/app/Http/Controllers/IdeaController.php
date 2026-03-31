@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Action\CreateIdea;
-use App\Http\Requests\StoreIdeaRequest;
+use App\Http\Requests\IdeaRequest;
 use App\IdeaStatus;
 use App\Models\Idea;
 use Illuminate\Http\Request;
@@ -37,7 +37,7 @@ class IdeaController extends Controller
         return view('ideas.index', compact('ideas', 'statusCounts', 'validatedStatus'));
     }
 
-    public function store(StoreIdeaRequest $request, CreateIdea $createIdea)
+    public function store(IdeaRequest $request, CreateIdea $createIdea)
     {
         $idea = $createIdea->handle($request->validated());
 
@@ -54,7 +54,7 @@ class IdeaController extends Controller
         return view('ideas.show', compact('idea'));
     }
 
-    public function update(StoreIdeaRequest $request, Idea $idea)
+    public function update(IdeaRequest $request, Idea $idea)
     {
         Gate::authorize('update', $idea);
 
