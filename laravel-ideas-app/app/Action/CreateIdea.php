@@ -16,6 +16,8 @@ class CreateIdea
 			'title', 'description', 'status', 'links',
 		])->toArray();
 
+		$data['description'] = $this->formatDescription($data['description']);
+
 		if ($attributes['image'] ?? false) {
 			$data['image_path'] = $attributes['image']->store('ideas', 'public');
 		}
@@ -27,5 +29,10 @@ class CreateIdea
 		$idea->steps()->createMany($steps);
 
         return $idea;
+	}
+
+	private function formatDescription(string $description): string
+	{
+		return str($description)->markdown();
 	}
 }

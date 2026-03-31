@@ -16,12 +16,17 @@ class UpdateIdea
 
 		// Autorizzazione
 		if ($idea->user_id !== $user->id) {
-			abort(403, '>Not authorized to update this idea');
+			abort(403, 'Not authorized to update this idea');
 		}
 
 		$data = collect($attributes)->only([
 			'title', 'description', 'status', 'links',
 		])->toArray();
+
+		// Format description as markdown
+		if ($data['description'] ?? false) {
+			$data['description'] = $this->formatDescription($data['description']);
+		}
 
 		if ($attributes['image'] ?? false) {
 			// If there's a new image, delete the old one if it exists
@@ -39,5 +44,10 @@ class UpdateIdea
 		$idea->steps()->createMany($steps);
 
         return $idea;
+	}
+
+	private function formatDescription(string $description): string
+	{
+		return str($description)->markdown();
 	}
 }
