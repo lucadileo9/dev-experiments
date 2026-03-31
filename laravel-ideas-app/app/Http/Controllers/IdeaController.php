@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Action\CreateIdea;
+use App\Action\UpdateIdea;
 use App\Http\Requests\IdeaRequest;
 use App\IdeaStatus;
 use App\Models\Idea;
@@ -57,15 +58,11 @@ class IdeaController extends Controller
         return view('ideas.show', compact('idea'));
     }
 
-    public function update(IdeaRequest $request, Idea $idea)
+    public function update(Idea $idea, IdeaRequest $request, UpdateIdea $updateIdea)
     {
-        Gate::authorize('update', $idea);
+        $updatedIdea = $updateIdea->handle($idea, $request->validated());
 
-        $validated = $request->safe()->except('steps');
-
-        $idea->update($validated);
-
-        return redirect()->route('ideas.show', $idea)
+        return redirect()->route('ideas.show', $updatedIdea)
             ->with('success', 'Your idea has been updated successfully!');
     }
 

@@ -22,6 +22,7 @@ class Idea extends Model
         'status',
         'user_id',
         'links',
+        'image_path',
     ];
 
     protected $casts = [
