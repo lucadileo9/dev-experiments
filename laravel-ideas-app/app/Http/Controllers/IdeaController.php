@@ -26,7 +26,7 @@ class IdeaController extends Controller
         $query = $user->ideas();
 
         // Usare when per applicare il filtro condizionalmente
-        $ideas = $query->when($validatedStatus, function ($q, $status) {
+        $ideas = $query->when($validatedStatus, function ($q, $status): void {
             $q->where('status', $status);
         })->get();
 
