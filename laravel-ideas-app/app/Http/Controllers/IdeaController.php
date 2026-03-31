@@ -19,7 +19,10 @@ class IdeaController extends Controller
             'status' => ['nullable', 'in:pending,in_progress,completed'],
         ])['status'] ?? null;
 
-        $query = Auth::user()->ideas();
+        
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $query = $user->ideas();
 
         // Usare when per applicare il filtro condizionalmente
         $ideas = $query->when($validatedStatus, function ($q, $status) {
@@ -28,10 +31,10 @@ class IdeaController extends Controller
 
         // Contare le idee per ogni status
         $statusCounts = [
-            'all' => Auth::user()->ideas()->count(),
-            'pending' => Auth::user()->ideas()->where('status', IdeaStatus::PENDING)->count(),
-            'in_progress' => Auth::user()->ideas()->where('status', IdeaStatus::IN_PROGRESS)->count(),
-            'completed' => Auth::user()->ideas()->where('status', IdeaStatus::COMPLETED)->count(),
+            'all' => $user->ideas()->count(),
+            'pending' => $user->ideas()->where('status', IdeaStatus::PENDING)->count(),
+            'in_progress' => $user->ideas()->where('status', IdeaStatus::IN_PROGRESS)->count(),
+            'completed' => $user->ideas()->where('status', IdeaStatus::COMPLETED)->count(),
         ];
 
         return view('ideas.index', compact('ideas', 'statusCounts', 'validatedStatus'));
