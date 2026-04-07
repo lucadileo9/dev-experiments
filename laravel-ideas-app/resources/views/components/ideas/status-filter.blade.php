@@ -36,3 +36,7 @@
             <a
                 href="{{ route('ideas.index', ['status' => App\IdeaStatus::COMPLETED->value]) }}"
                 class="btn btn-sm {{ request('status') === App\IdeaStatus::COMPLETED->value ? 'btn-success' : 'btn-outline' }}"
+            >
+                Completed
+                <span class="badge badge-lg badge-success">{{ $statusCounts['completed'] }}</span>
+            </a>
