@@ -1,73 +1,90 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Laravel Ideas Dashboard 🚀
 
-## About Laravel
+A modern and responsive learning project built with **Laravel 11**, crafted to securely manage, organize, and track your personal and professional ideas. This project focuses on backend architecture, code optimization, robust security, and a modular frontend built with **Atomic Design** principles, **Tailwind CSS v4** and **DaisyUI**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## ✨ Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Backend (Robust & Secure)
+- **MVC Architecture**: Clean separation of Models, Views, and Controllers.
+- **Advanced Authorization**: Real-world protection against IDOR (Insecure Direct Object Reference). The app implements **Policies**, **Route Middlewares**, and **Gates** guaranteeing that users can only view, edit, or delete their own ideas or update belonging steps.
+- **Form Requests**: Centralized, clean validation logic including custom Authorization strategies per request action.
+- **Query Optimization**: Efficient database aggregated querying (`selectRaw()`, `groupBy`) reducing the previous N+1 logic structure drastically. Implements PHP 8.1 internal Enums (`IdeaStatus`) bound directly to validation rules.
+- **Route Model Binding**: Automatic fetching of DB resources.
+- **Database Customization**: Dynamic database structure supported by factories, providing pre-populated users and associated mock ideas for fast experimentation.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Frontend (Modern & Modular)
+- **Vite Integration**: Blazing fast asset bundling for the UI component tracking.
+- **Tailwind CSS v4 & DaisyUI**: Full implementation delivering out-of-the-box beautiful semantic elements (Cards, Buttons, Inputs, Modals, Navbars).
+- **Extensive Blade Engine**: Built on reusable components (`<x-ideas.form>`, `<x-ui.modal>`, `<x-layouts.app>`). The whole project has been refactored dropping redundant custom pages, using dynamic partials instead.
+- **Dynamic Theme Switcher**: 32+ theme palette saved persistently within the local storage, offering custom Dark and Light modes.
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🛠️ Getting Started
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Prerequisites
+- PHP 8.2+
+- Composer
+- Node.js & npm
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Installation
 
-## Agentic Development
+1. **Clone the repository**:
+   ```bash
+   git clone <repository_url>
+   cd laravel-ideas-app
+   ```
+2. **Install PHP dependencies**:
+   ```bash
+   composer install
+   ```
+3. **Install Frontend dependencies**:
+   ```bash
+   npm install
+   ```
+4. **Environment Setup**:
+   Copy the example environment file and generate the application key.
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+5. **Database Setup & Mock Data**:
+   This command will run all migrations and populate the database with a test user and fake ideas. *(Note: you must configure your `.env` connection first)*
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+6. **Start the Development Servers**:
+   You need two terminals running simultaneously.
+   
+   Terminal 1 (Backend):
+   ```bash
+   php artisan serve
+   ```
+   
+   Terminal 2 (Frontend Builder):
+   ```bash
+   npm run dev
+   ```
 
-```bash
-composer require laravel/boost --dev
+7. **Visit**: `http://localhost:8000`
 
-php artisan boost:install
-```
+---
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## 📚 Advanced Concepts Implemented
+During the development, the following concepts and challenges have been tackled:
+- **English Translation**: Complete localization into English of the entire application.
+- **Refactoring & Modularity**: Turning redundant, standalone create/edit blades into a master Form component invoked programmatically within Modals and Layouts.
+- **IDOR Protection Implementation**: Developing an `IdeaPolicy`, injected as explicit Middleware for Routes and within Controllers to restrict lateral movements.
+- **Performance Filtering**: Building singular scalable DB aggregation processes for dashboard statistic loading. 
+- **Profile Module**: Providing a dedicated end-user environment to edit critical info securely via `$request->user()->update(...)`.
 
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Documentation
+Check the `docs/` folder in the root path to understand the decision-making and step-by-step logic on:
+- [Implementation of system Authorization & Anti-IDOR (Phase 1)](docs/01-implementazione-autorizzazione.md)
+- [Query optimization logic & User Profile creation (Phase 2)](docs/02-refactoring-filtro-e-profilo.md)
 
 ## License
-
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-## TODO:
-
-X Refactor the form to make it more modular.
-X create the modal, instead that the dedicated pages
-X make everything in english
-X checkbox and status update for steps
-X refactor of the page that show the idea
-X remove the non existent page from the navbar
-X refactor of the 2 forms of login and register, since they are very similar
-X add authorization in the app.
-X fix the update of an idea
-
-- refactor of the filter for status
-  -update the user profile
