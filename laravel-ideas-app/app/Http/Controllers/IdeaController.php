@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class IdeaController extends Controller
 {
@@ -18,7 +19,7 @@ class IdeaController extends Controller
     {
         // Validazione dello status
         $validatedStatus = $request->validate([
-            'status' => ['nullable', 'in:pending,in_progress,completed'],
+            'status' => ['nullable', Rule::enum(IdeaStatus::class)],
         ])['status'] ?? null;
 
         /** @var User $user */
@@ -30,12 +31,17 @@ class IdeaController extends Controller
             $q->where('status', $status);
         })->get();
 
-        // Contare le idee per ogni status
+        // Contare le idee per ogni status tramite raggruppamento
+        $statusGroupCounts = $user->ideas()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
         $statusCounts = [
-            'all' => $user->ideas()->count(),
-            'pending' => $user->ideas()->where('status', IdeaStatus::PENDING)->count(),
-            'in_progress' => $user->ideas()->where('status', IdeaStatus::IN_PROGRESS)->count(),
-            'completed' => $user->ideas()->where('status', IdeaStatus::COMPLETED)->count(),
+            'all' => $statusGroupCounts->sum(),
+            'pending' => $statusGroupCounts->get(IdeaStatus::PENDING->value) ?? 0,
+            'in_progress' => $statusGroupCounts->get(IdeaStatus::IN_PROGRESS->value) ?? 0,
+            'completed' => $statusGroupCounts->get(IdeaStatus::COMPLETED->value) ?? 0,
         ];
 
         return view('ideas.index', compact('ideas', 'statusCounts', 'validatedStatus'));
