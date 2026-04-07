@@ -26,6 +26,7 @@
             </li>
 
             @auth
+                <li><a href="{{ route('profile.edit') }}" class="font-medium">Profile</a></li>
                 <li>
                     <form action="{{ route('logout') }}" method="POST" class="inline m-0 p-0">
                         @csrf
