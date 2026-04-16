@@ -7,39 +7,36 @@
         <div class="flex flex-wrap gap-3">
             <!-- All Ideas Button -->
             <a 
-                href="/ideas" 
+                href="{{ route('ideas.index') }}"
                 class="btn btn-sm {{ !request('status') ? 'btn-primary' : 'btn-outline' }}"
             >
                 All Ideas
-                <span class="badge badge-lg">{{ $statusCounts['all'] }}</span>
+                <span class="badge badge-lg">{{ $statusCounts['all'] }}</span>  
             </a>
-            
+
             <!-- Pending Button -->
-            <a 
-                href="/ideas?status=pending" 
-                class="btn btn-sm {{ request('status') === 'pending' ? 'btn-warning' : 'btn-outline' }}"
+            <a
+                href="{{ route('ideas.index', ['status' => App\IdeaStatus::PENDING->value]) }}"
+                class="btn btn-sm {{ request('status') === App\IdeaStatus::PENDING->value ? 'btn-warning' : 'btn-outline' }}"
             >
                 Pending
                 <span class="badge badge-lg badge-warning">{{ $statusCounts['pending'] }}</span>
             </a>
-            
+
             <!-- In Progress Button -->
-            <a 
-                href="/ideas?status=in_progress" 
-                class="btn btn-sm {{ request('status') === 'in_progress' ? 'btn-info' : 'btn-outline' }}"
+            <a
+                href="{{ route('ideas.index', ['status' => App\IdeaStatus::IN_PROGRESS->value]) }}"
+                class="btn btn-sm {{ request('status') === App\IdeaStatus::IN_PROGRESS->value ? 'btn-info' : 'btn-outline' }}"
             >
                 In Progress
                 <span class="badge badge-lg badge-info">{{ $statusCounts['in_progress'] }}</span>
             </a>
-            
+
             <!-- Completed Button -->
-            <a 
-                href="/ideas?status=completed" 
-                class="btn btn-sm {{ request('status') === 'completed' ? 'btn-success' : 'btn-outline' }}"
+            <a
+                href="{{ route('ideas.index', ['status' => App\IdeaStatus::COMPLETED->value]) }}"
+                class="btn btn-sm {{ request('status') === App\IdeaStatus::COMPLETED->value ? 'btn-success' : 'btn-outline' }}"
             >
                 Completed
                 <span class="badge badge-lg badge-success">{{ $statusCounts['completed'] }}</span>
             </a>
-        </div>
-    </div>
-</div>
